@@ -2,6 +2,8 @@
 #include <sstream>
 #include <vector>
 #include <iterator>
+#include <algorithm>
+#include <map>
 
 namespace helper {
     std::vector<std::string> split(const std::string& s, char delimiter)

@@ -1,11 +1,12 @@
 #include "helper.h"
 #include "commands/command.h"
+#include "database/database.h"
 
-class kernal
+class SQL
 {
 public:
     // Constructor
-    kernal()
+    SQL()
     {
         readUserInput();
     }
@@ -20,6 +21,11 @@ public:
 
         Command * cmd = new Command(args);
 
-        return args;
+        readUserInput();
     }
+
+private:
+    // stores known databases
+    std::unordered_map<std::string, DB::Database> databases;
+
 };

@@ -1,10 +1,10 @@
-#include "kernal.h"
+#include "SQL.h"
 
 int main(void)
 {
     std::cout << "Database" << std::endl;
 
-    kernal x;    
+    SQL * client = new SQL();    
 
     return 0;
 }
