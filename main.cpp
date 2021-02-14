@@ -1,10 +1,11 @@
-#include "SQL.h"
+#include "database/SQL.h"
 
 int main(void)
 {
     std::cout << "Database" << std::endl;
 
-    SQL * client = new SQL();    
+    // Launch instance of SQL (Mark Minkoff's SQL for CS 482)
+    SQL * client = new SQL(); 
 
     return 0;
 }

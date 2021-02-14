@@ -1,6 +1,12 @@
-#include "command.h"
+#include "cmd.h"
 
-class Create: public Command
+Create::Create()
 {
 
-}; 
+}
+
+Create::~Create()
+{
+    
+}
+
