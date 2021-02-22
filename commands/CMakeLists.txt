@@ -1,4 +1,4 @@
-target_precompile_headers(${PROJECT_NAME} PRIVATE cmd.h)
+target_precompile_headers(${PROJECT_NAME} PUBLIC cmd.h PUBLIC create.h)
 
 add_library(cmd cmd.cpp)
 add_library(create create.cpp)

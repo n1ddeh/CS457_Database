@@ -1,12 +1,8 @@
 #ifndef CMD_H_
 #define CMD_H_
 
-#include <string>
-#include <vector>
-#include <unordered_map>
-#include <iostream>
-
 #include "../database/SQL.h"
+
 
 class CMD
 {
@@ -27,7 +23,7 @@ private:
 public:
     CMD();
     CMD(std::vector<std::string>& arguments);
-    virtual ~CMD();
+    ~CMD();
 
 private:
     /* Local protected variables
@@ -41,14 +37,6 @@ private:
     /* Handle the command */
     void handle();
 };
-
-
-class Create: public CMD
-{
-public:
-    Create();
-    ~Create();
-}; 
 
 class Drop: public CMD 
 {

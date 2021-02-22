@@ -9,9 +9,6 @@ class SQL
 public:
     /**
      *  Default Constructor
-     *  
-     * 
-     * 
      * */
     SQL();
     ~SQL();

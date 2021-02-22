@@ -1,7 +1,5 @@
 #include "cmd.h"
 
-CMD::CMD() {}
-
 // Constructor
 CMD::CMD(std::vector<std::string>& arguments)
 {
@@ -69,7 +67,6 @@ void CMD::handle()
             {
                 case 0:
                     std::cout << "CREATE COMMAND HIT\n";
-                    Create();
                     break;
 
                 case 1:
