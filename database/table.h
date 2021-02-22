@@ -6,6 +6,7 @@ class Table
 {
 private:
     std::string table;      // Table name
+    std::string path;       // Path of table
     unsigned int table_id;  // ID of table (incremental)
     unsigned int col_count; // Number of columns
 

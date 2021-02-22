@@ -7,11 +7,21 @@
 class SQL
 {
 public:
-    // Constructor
+    /**
+     *  Default Constructor
+     *  
+     * 
+     * 
+     * */
     SQL();
     ~SQL();
 
-    void readUserInput();
+    /**
+     *  SQL_CLI
+     * * The active command line interface
+     * @return void
+    */
+    void SQL_CLI();
 
     /**
      * split
@@ -22,13 +32,31 @@ public:
     */
     std::vector<std::string> split(const std::string& s, char delimiter);
 
-private:
-    // stores known databases
-    std::unordered_map<std::string, Database> databases;
+    /** 
+     *  dbSelected
+     *  Returns true if a database is selected
+     *  or false if not
+    */
+    bool dbSelected();
 
-    // Selected Database
+    bool createDatabase(std::string database = "undefined", unsigned int database_id = 0, std::string path = "undefined");
+
+    Database* useDatabase(Database* db = nullptr);
+
+
+private:
+    /**
+     *  Database Storage
+     *  key : value => databaseID : databasePTR
+    */
+    std::vector<Database*> databases;
+
+    // The selected database
     Database* database;
-    bool db_selected;
+
+    // The number of stored databases
+    unsigned int database_count;
+    
     
 
 };

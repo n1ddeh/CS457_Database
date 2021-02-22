@@ -1,9 +1,6 @@
 #include "cmd.h"
 
-CMD::CMD()
-{
-    
-}
+CMD::CMD() {}
 
 // Constructor
 CMD::CMD(std::vector<std::string>& arguments)
@@ -32,10 +29,12 @@ void CMD::initVars(std::vector<std::string>& args, const unsigned int argn)
     this->params_num = argn - 1;
 
     // We don't have these yet
-    this->database      = "undefined";
-    this->database_loc  = "undefined";
-    this->table         = "undefined";
-    this->table_loc     = "undefined";
+    this->database = nullptr;
+    this->database_name = "undefined";
+    this->database_path = "undefined";
+    this->table = nullptr;
+    this->table_name = "undefined";
+    this->table_path = "undefined";
 }
 
 void CMD::initializeCommands()
@@ -70,6 +69,7 @@ void CMD::handle()
             {
                 case 0:
                     std::cout << "CREATE COMMAND HIT\n";
+                    Create();
                     break;
 
                 case 1:

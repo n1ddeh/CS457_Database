@@ -6,16 +6,20 @@
 #include <unordered_map>
 #include <iostream>
 
+#include "../database/SQL.h"
+
 class CMD
 {
 protected:
     std::string              command;
     std::vector<std::string> params;
     unsigned int             params_num;
-    std::string              database;
-    std::string              database_loc;
-    std::string              table;
-    std::string              table_loc;
+    Database*                database;
+    std::string              database_name;
+    std::string              database_path;
+    Table*                   table;
+    std::string              table_name;
+    std::string              table_path;
 
 private:
     std::unordered_map<std::string, unsigned int> commands;
@@ -23,7 +27,7 @@ private:
 public:
     CMD();
     CMD(std::vector<std::string>& arguments);
-    ~CMD();
+    virtual ~CMD();
 
 private:
     /* Local protected variables
