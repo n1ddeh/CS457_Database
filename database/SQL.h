@@ -21,6 +21,14 @@ public:
     void SQL_CLI();
 
     /**
+     *  Handels the command given by the user
+     * @param vector<string> args
+     * @return bool
+    */
+    bool HANDLE_CMD(std::vector<std::string>& args);
+    
+
+    /**
      * split
      * * Split a string by a delimiter and return a vector of strings
      * @param string The string being split
@@ -44,7 +52,6 @@ public:
 private:
     /**
      *  Database Storage
-     *  key : value => databaseID : databasePTR
     */
     std::vector<Database*> databases;
 
@@ -53,9 +60,6 @@ private:
 
     // The number of stored databases
     unsigned int database_count;
-    
-    
-
 };
 
 #endif

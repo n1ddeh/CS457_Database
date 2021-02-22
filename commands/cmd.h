@@ -2,8 +2,6 @@
 #define CMD_H_
 
 #include "../database/SQL.h"
-
-
 class CMD
 {
 protected:
@@ -25,6 +23,12 @@ public:
     CMD(std::vector<std::string>& arguments);
     ~CMD();
 
+    /*  Check if a specified 
+        cmd exists  */
+    bool checkCMD(const std::string& command);
+
+    unsigned int get_CMD_ID(const std::string& command);
+
 private:
     /* Local protected variables
        are initialized */
@@ -34,29 +38,6 @@ private:
         mapped and initialized */
     void initializeCommands();
 
-    /* Handle the command */
-    void handle();
-};
-
-class Drop: public CMD 
-{
-public:
-    Drop();
-    ~Drop();
-};
-
-class Use: public CMD
-{
-public:
-    Use();
-    ~Use();
-};
-
-class Alter: public CMD
-{
-public:
-    Alter();
-    ~Alter();
 };
 
 #endif // CMD_H_

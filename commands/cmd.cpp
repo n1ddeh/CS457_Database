@@ -1,5 +1,11 @@
 #include "cmd.h"
 
+CMD::CMD() {
+    initializeCommands();
+}
+
+CMD::~CMD() {}
+
 // Constructor
 CMD::CMD(std::vector<std::string>& arguments)
 {
@@ -9,11 +15,9 @@ CMD::CMD(std::vector<std::string>& arguments)
 
     if (argn == 1) throw "No parameters provided";
 
-    CMD::initVars(arguments, argn);
+    initVars(arguments, argn);
 
-    CMD::initializeCommands();
-
-    CMD::handle();
+    initializeCommands();
 }
 
 void CMD::initVars(std::vector<std::string>& args, const unsigned int argn)
@@ -52,44 +56,12 @@ void CMD::initializeCommands()
     this->commands.insert(cmd4); 
 }
 
-void CMD::handle()
+bool CMD::checkCMD(const std::string& command)
 {
-    try
-        {
+    return this->commands.count(command);
+}
 
-            if (!this->commands.count(this->command)) {
-                std::cout << this->command << " is not a command.\n";
-            }
-            
-            unsigned int cmd = this->commands.at(this->command);
-
-            switch (cmd)
-            {
-                case 0:
-                    std::cout << "CREATE COMMAND HIT\n";
-                    break;
-
-                case 1:
-                    std::cout << "DROP COMMAND HIT\n";
-                    break;
-
-                case 2:
-                    std::cout << "USE COMMAND HIT\n";
-                    break;
-
-                case 3:
-                    std::cout << "ALTER COMMAND HIT\n";
-                    break;
-                    
-                default:
-                    std::cout << "UNDEFINED COMMAND\n";
-                    break;
-            }
-
-        }
-        catch(const std::exception& e)
-        {
-            std::cerr << e.what() << "\n";
-        }
-        
+unsigned int CMD::get_CMD_ID(const std::string& command)
+{
+    return this->commands.at(command);
 }

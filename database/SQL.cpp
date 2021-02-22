@@ -1,9 +1,16 @@
 #include "SQL.h"
+#include "../commands/create.h"
+#include "../commands/drop.h"
+#include "../commands/use.h"
+#include "../commands/alter.h"
 
 SQL::SQL() : database(nullptr), database_count(0)
 {
     SQL::SQL_CLI();
+}
 
+SQL::~SQL()
+{
 
 }
 
@@ -15,7 +22,7 @@ void SQL::SQL_CLI()
 
     std::vector<std::string> args = SQL::split(input, ' ');
 
-    CMD * cmd = new CMD(args);
+    HANDLE_CMD(args);
 
     return SQL_CLI();
 }
@@ -66,4 +73,52 @@ Database* SQL::useDatabase(Database* db)
     this->database = db;
 
     return this->database;
+}
+
+bool SQL::HANDLE_CMD(std::vector<std::string>& args)
+{
+    std::cout << "Command Handler called\n";
+    try {
+        // Grab the commands from the provided arguments
+        std::string command = args[0];
+
+        CMD* protoype = new CMD();
+
+        // Check if command exists, if it doesn't return 0
+        if (!protoype->checkCMD(command)) {
+            std::cout << "Command " << command << " does not exist.\n";
+            return 0;
+        }
+
+        unsigned int command_id = protoype->get_CMD_ID(command);
+
+        if (command_id == 0)
+        {
+            Create* createCMD = new Create(args);
+            delete createCMD;
+        }
+        else if (command_id == 1)
+        {
+            Drop* dropCMD = new Drop(args);
+            delete dropCMD;
+        }
+        else if (command_id == 2)
+        {
+            Use* useCMD = new Use(args);
+            delete useCMD;
+        }
+        else if (command_id == 3)
+        {
+            Alter* alterCMD = new Alter(args);
+            delete alterCMD;
+        }
+
+        delete protoype;
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << "\n";
+    }
+
+    return 1;
 }
