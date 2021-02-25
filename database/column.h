@@ -1,13 +1,7 @@
 #ifndef COLUMN_H_
 #define COLUMN_H_
 
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <vector>
-#include <unordered_map>
-#include <filesystem>
-#include <map>
+#include "include.h"
 
 /**
  * struct ColumnData

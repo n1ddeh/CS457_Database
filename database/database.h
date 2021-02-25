@@ -1,30 +1,23 @@
 #ifndef DATABASE_H_
 #define DATABASE_H_
 
+#include "include.h"
 #include "table.h"
 
 #define STORAGE_PATH std::string("../storage")
 class Database
 {
 private:
-    std::string database;       // Database Name
-    unsigned int database_id;   // Database ID
-    std::string path;           // Storage Path of Database
-    std::vector<Table*> tables;  // Tables within the Database
+    std::string database_name;                                      // Database Name
+    std::unordered_map<std::string, std::shared_ptr<Table>> tables; // Tables within the Database
 
 public:
     Database();
-
-    // Database Constructor
-    Database(std::string database = "undefined", unsigned int id = 0, std::string path = "undefined");
-
-    // Getters
-    std::string getDatabase() {
-        return this->database;
-    }
-    unsigned int getDatabaseId() {
-        return this->database_id;
-    }
+    Database(const std::string& database = "undefined");
+    ~Database();
+    
+    bool createTable(std::string table_name, std::vector<std::pair<std::string, std::string>> columns);
+    bool tableExists(const std::string& table_name);
 };
 
 #endif // DATABASE_H_

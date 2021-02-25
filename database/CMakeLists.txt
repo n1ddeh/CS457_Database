@@ -1,4 +1,4 @@
-target_precompile_headers(${PROJECT_NAME} PUBLIC column.h table.h database.h SQL.h)
+target_precompile_headers(${PROJECT_NAME} PUBLIC SQL.h database.h table.h column.h include.h)
 
 add_library(column column.cpp)
 add_library(table table.cpp)
