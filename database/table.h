@@ -27,6 +27,9 @@ public:
     bool insertColumn(std::string column = "undefined", const std::vector<char*>&       column_data = std::vector<char*>());
     bool insertColumn(std::string column = "undefined", const std::vector<std::string>& column_data = std::vector<std::string>());
 
+    bool addColumnToMetaData(std::pair<std::string, std::string> column_info);
+    void printColumnMetaData();
+
     // Getters
     std::string getTable() { return this->table_name; }
     unsigned int getColumnCount() { return this->column_count; }

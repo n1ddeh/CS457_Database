@@ -26,7 +26,7 @@ public:
     /**  Handles the command given by the user
      * @param vector<string> args
      * @return bool */
-    bool HANDLE_CMD(const std::vector<std::string>& args);
+    bool HANDLE_CMD(std::vector<std::string> args);
 
     /** Checks if a command exists */
     bool cmdExists(const std::string& cmd);
@@ -38,6 +38,9 @@ public:
      *  Returns true if a database is selected */
     bool dbSelected();
 
+    /**  Return a shared pointer to a database */
+    std::shared_ptr<Database> getDatabase(const std::string& database_name);
+
     /**  Creates a database and maps it*/
     bool createDatabase(const std::vector<std::string>& args);
 
@@ -47,11 +50,22 @@ public:
     /**  Creates a table (if a db is selected) and maps it*/
     bool createTable(const std::vector<std::string>& args);
 
+    /**  Outputs all data from a table  */
+    bool selectTable(const std::vector<std::string>& args);
+    bool selectAllFromTable(const std::string& args);
+
+    /**  Change a table in some way  */
+    bool alterTable(const std::vector<std::string>& args);
+
+    /**  Parse table column parameters for creating a table */
+    static std::vector<std::pair<std::string, std::string>> parseTableColumns(std::vector<std::string> columns);
+
     /**  Drops a table (if a db is selected) and maps it*/
     bool dropTable(const std::vector<std::string>& args);
     
     /**  Sets the selected database*/
-    std::shared_ptr<Database> useDatabase(std::shared_ptr<Database> db = nullptr);
+    bool useDatabase(std::shared_ptr<Database> db = nullptr);
+    bool useDatabase(const std::vector<std::string>& args);
 
     /**   dbSelected
      *  Returns true if a database is selected
@@ -68,7 +82,14 @@ public:
      * @param string The string being split
      * @param char The delimiter to split by
      * @return vector<string> The split string */
-    std::vector<std::string> split(const std::string& s, char delimiter);
+    static std::vector<std::string> split(const std::string& s, char delimiter);
+
+    /**  * Check if a parenthesis are balanced in a string. 
+     *  ! Credit goes to chammika at leetcode.com
+     * * https://leetcode.com/problems/valid-parentheses/discuss/9252/2ms-C%2B%2B-sloution
+     * @param string The string being split
+     * @return bool */
+    bool parenthesisBalance(std::string s);
 
     void errorUnknownArguments(const std::vector<std::string>& args, const std::string& cmd, unsigned int index = 0);
 

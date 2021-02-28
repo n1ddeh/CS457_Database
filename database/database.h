@@ -17,7 +17,14 @@ public:
     ~Database();
     
     bool createTable(std::string table_name, std::vector<std::pair<std::string, std::string>> columns);
+    bool dropTable(const std::string& table_name);
+    bool addColumnsToTable(const std::string& table_name, std::vector<std::pair<std::string, std::string>> columns);
+
     bool tableExists(const std::string& table_name);
+    bool printTableColumnInfo(const std::string& table_name);
+    std::string getDatabaseName() { return this->database_name; }
+    void setDatabaseName(std::string db) { this->database_name = db; }
+    std::shared_ptr<Table> getTable(const std::string& table_name);
 };
 
 #endif // DATABASE_H_
