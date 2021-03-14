@@ -20,9 +20,29 @@ public:
     bool dropTable(const std::string& table_name);
     bool addColumnsToTable(const std::string& table_name, std::vector<std::pair<std::string, std::string>> columns);
 
+    /**
+     *  Check if a table exists
+     * 
+     * @param const string
+     * @return bool
+     * */
     bool tableExists(const std::string& table_name);
+
+    /**
+     *  Print column metadata of a table
+     * 
+     * @param const string
+     * @return bool (true if success)
+     * */
     bool printTableColumnInfo(const std::string& table_name);
+
+    /**  Get the name of the database
+     * 
+     * @return string 
+     * */
     std::string getDatabaseName() { return this->database_name; }
+
+
     void setDatabaseName(std::string db) { this->database_name = db; }
     std::shared_ptr<Table> getTable(const std::string& table_name);
 };

@@ -1,3 +1,9 @@
+/**
+ * SQL.cpp
+ * Author: Mark Minkoff
+ * Desc: The source implementation of SQL.H.
+ * CLI, Commands, Database Management
+ */
 #include "SQL.h"
 
 SQL::SQL() : database_count(0)
@@ -13,42 +19,51 @@ SQL::~SQL()
 
 void SQL::initializeCommands()
 {
-    std::size_t NUM_COMMANDS = 5;
-
+    // Specify command count and reserve memory in the unordered map for them
+    std::size_t NUM_COMMANDS = 6;
     this->commands.reserve(NUM_COMMANDS);
 
+    // Asign commands value pairs
     std::pair<std::string, unsigned int> cmd0("CREATE", 0);
     std::pair<std::string, unsigned int> cmd1("DROP",   1);
     std::pair<std::string, unsigned int> cmd2("USE",    2);
     std::pair<std::string, unsigned int> cmd3("ALTER",  3);
-    std::pair<std::string, unsigned int> cmd4("SELECT",  4);
+    std::pair<std::string, unsigned int> cmd4("SELECT", 4);
+    std::pair<std::string, unsigned int> cmd5("INSERT", 5);
 
+    // Insert commands into unordered map
     this->commands.insert(cmd0);
     this->commands.insert(cmd1);
     this->commands.insert(cmd2); 
     this->commands.insert(cmd3);
     this->commands.insert(cmd4);
+    this->commands.insert(cmd5);
 }
 
 void SQL::SQL_CLI()
 {
+    // The user input
     std::string input;
 
     // Request user input from console
     std::getline(std::cin, input);
 
+    // Check if the user input has balanced parenthsis, if not issue some error
     if (!parenthesisBalance(input))
     {
         std::cout << "-- !Parenthsis are not balanced in input:\n\t" << input << "\n";
         return SQL_CLI();
     }
 
+    // The exit condition for the CLI
     if (input == ".EXIT" || input == "EXIT")
     {
         return;
     }
 
+    // Split the user input with a space delimeter
     std::vector<std::string> args = SQL::split(input, ' ');
+
     HANDLE_CMD(args);
 
     return SQL_CLI();
@@ -56,6 +71,7 @@ void SQL::SQL_CLI()
 
 bool SQL::dbSelected()
 {
+    // No database is selected if the database pointer is null
     if (this->database != nullptr) {
         return true;
     }
@@ -64,12 +80,14 @@ bool SQL::dbSelected()
 
 bool SQL::createDatabase(const std::vector<std::string>& args)
 {
-
     const unsigned int argn = args.size();
+
+    // Maximum number of arguments for CREATE DATABASE command is three
     const unsigned int max_argn = 3;
-    
+
+    // Check if the number of argument supplied is less than the argument required
     if (argn < max_argn) { std::cout << "-- [CMD - CREATE - ERROR] -> Supplied argument count (" << argn << ") does not match required argument count (" << max_argn << ")\n"; return false; }
-    
+
     const std::string command_name  = args[0];
     const std::string database      = args[1];
     const std::string database_name = args[2];
@@ -81,8 +99,9 @@ bool SQL::createDatabase(const std::vector<std::string>& args)
         return false;
     }
 
+    // Check if there are more supplied arguments than required
     if (argn > max_argn) { errorUnknownArguments(args, command_name, max_argn); return false; }
-
+    
     // Check that the database has not been created, if so return.
     if(dbExists(database_name)) 
     {   
@@ -91,6 +110,7 @@ bool SQL::createDatabase(const std::vector<std::string>& args)
     }
     try
     {
+        // Crate the database and insert into the unordered map of databases
         this->databases.insert(std::make_pair(database_name, std::make_shared<Database>(database_name)));
         incrementDatabaseCount();
     }
@@ -144,7 +164,6 @@ bool SQL::dropDatabase(const std::vector<std::string>& args)
     std::cout << "Database " << database_name << " deleted.\n";
     return true;
 }
-
 
 bool SQL::createTable(const std::vector<std::string>& args)
 {
@@ -385,6 +404,7 @@ std::vector<std::pair<std::string, std::string>> SQL::parseTableColumns(std::vec
         return std::vector<std::pair<std::string, std::string>>();
     }
 
+    // Check if only two column arguments were provided
     if (num_columns == 2)
     {
         std::vector<std::pair<std::string, std::string>> res;
@@ -406,6 +426,7 @@ std::vector<std::pair<std::string, std::string>> SQL::parseTableColumns(std::vec
     if ((num_columns % 2) != 0)
     {
         std::cout << "-- !Number of column arguments for CREATE TABLE are not even\n";
+        // This means that the user inputed a missing name/type for column arguments
         return std::vector<std::pair<std::string, std::string>>();
     }
 
@@ -473,7 +494,6 @@ bool SQL::parenthesisBalance(std::string s)
         return p.empty();
 }
 
-
 bool SQL::selectTable(const std::vector<std::string>& args)
 {
     const unsigned int argn = args.size();
@@ -523,8 +543,6 @@ bool SQL::selectTable(const std::vector<std::string>& args)
 
 bool SQL::selectAllFromTable(const std::string& table_name)
 {
-   
-
     this->database->printTableColumnInfo(table_name);
     return true;
 }
@@ -556,7 +574,5 @@ bool SQL::alterTable(const std::vector<std::string>& args)
 
     std::cout << "-- Table " << table_name << " modified.\n";
     return true;
-    // Table tbl_1 modified
 }
 
-//std::cout << "-- Breakpoint\n";

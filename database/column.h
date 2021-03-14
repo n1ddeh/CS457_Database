@@ -18,7 +18,6 @@ typedef struct ColumnData
 
 } ColumnData;
 
-
 template <class DataType>
 class Column
 {
@@ -31,8 +30,6 @@ private:
 public:
     Column();
     Column(std::string column = "undefined", unsigned int dataType = 0, std::vector<DataType>& elements = new std::vector<DataType>());
-    
-
 };
 
 #endif // COLUMN_H_

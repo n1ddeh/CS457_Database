@@ -1,3 +1,9 @@
+/**
+ * SQL.h
+ * Author: Mark Minkoff
+ * Desc: The header file for SQL.h
+ * CLI, Commands, Database Management
+ */
 #ifndef SQL_H_
 #define SQL_H_
 
@@ -50,9 +56,9 @@ public:
     /**  Creates a table (if a db is selected) and maps it*/
     bool createTable(const std::vector<std::string>& args);
 
-    /**  Outputs all data from a table  */
+    /**  Outputs data from a table  */
     bool selectTable(const std::vector<std::string>& args);
-    bool selectAllFromTable(const std::string& args);
+    bool selectAllFromTable(const std::string& table_name);
 
     /**  Change a table in some way  */
     bool alterTable(const std::vector<std::string>& args);
