@@ -9,6 +9,7 @@
 SQL::SQL() : database_count(0)
 {
     initializeCommands();
+    initializeTypes();
     SQL_CLI();
 }
 
@@ -198,6 +199,17 @@ bool SQL::createTable(const std::vector<std::string>& args)
     {
         std::vector<std::string> tableArgs(args.begin() + 3, args.end());
         columns = parseTableColumns(tableArgs);
+        
+        // If there are columns, preform type checking
+        if (columns.size())
+        {
+            std::vector<std::string> types;
+            for (auto& col : columns)
+            {
+                types.emplace_back(std::get<1>(col));
+            }
+            if (!checkTypes(types)) return false;
+        }
     }
 
     this->database->createTable(table_name, columns);
@@ -576,3 +588,87 @@ bool SQL::alterTable(const std::vector<std::string>& args)
     return true;
 }
 
+void SQL::initializeTypes()
+{
+    // Specify type count and reserve memory in the unordered map for them
+    std::size_t NUM_TYPES = 4;
+    this->types.reserve(NUM_TYPES);
+
+    std::pair<std::string, unsigned int> type0("INT", 0);
+    std::pair<std::string, unsigned int> type1("FLOAT", 1);
+    std::pair<std::string, unsigned int> type2("CHAR", 2);
+    std::pair<std::string, unsigned int> type3("VARCHAR", 3);
+
+    // Insert commands into unordered map
+    this->types.insert(type0);
+    this->types.insert(type1);
+    this->types.insert(type2); 
+    this->types.insert(type3);
+}
+
+bool SQL::checkTypes(const std::vector<std::string>& types)
+{
+    std::vector<std::string> errors;
+
+    for (auto& type: types)
+    {
+        std::string upperType = toUpper(type);
+        if (!this->types.count(upperType))
+        {
+            // Check if this is a VARCHAR and parathensis are formatted correctly
+            if (upperType.substr(0, 8) == "VARCHAR(" && upperType.back() == ')')
+            {
+                // Comfirmed VARCHAR, now ensure the number is valid
+                std::string num = upperType.substr(8, upperType.size() - 9);
+                
+                // Check if user entered a negative number
+                if (num[0] == '-') 
+                {
+                    std::string temp = "-- TYPE ERORR: VARCHAR size (";
+                    temp += num;
+                    temp += ") cannot be negative.\n";
+                    errors.emplace_back(temp);
+                }
+                // Check if any character is not valid for varchar size
+                for (auto& c: num)
+                {
+                    if (!isdigit(c)) 
+                    {
+                        std::string temp = "-- TYPE ERROR: VARCHAR size (";
+                        temp += num;
+                        temp += ") contains non digit characters.\n";
+                        errors.emplace_back(temp);
+                    }
+                }
+            }
+            else {
+                std::string temp = "-- TYPE ERORR: Unknown type: ";
+                temp += type;
+                temp += '\n';
+                errors.emplace_back(temp);
+            }
+        }
+    }
+    // If there are type errors, print them out and return false
+    if (errors.size()) {
+        for (auto& e: errors) {
+            std::cout << e;
+        }
+        return false;
+    }
+    // Return true when there are no errors
+    return true;
+}
+
+std::string SQL::toUpper(std::string str)
+{
+    // Create a temp string of size 'str'
+    std::string up;
+    up.reserve(str.size());
+
+    // Convert each letter of 'str' to uppercase and append to 'up'
+    for (auto& c : str) up += ::toupper(c);
+    
+    // Return the uppercase string
+    return up;
+}

@@ -73,6 +73,12 @@ public:
     bool useDatabase(std::shared_ptr<Database> db = nullptr);
     bool useDatabase(const std::vector<std::string>& args);
 
+    /** Initialized supported column types */
+    void initializeTypes();
+
+    /** Given a vector of types, determine if they are supported*/
+    bool checkTypes(const std::vector<std::string>& types);
+
     /**   dbSelected
      *  Returns true if a database is selected
      *  or false if not */
@@ -99,9 +105,13 @@ public:
 
     void errorUnknownArguments(const std::vector<std::string>& args, const std::string& cmd, unsigned int index = 0);
 
+    // Return an upper-case version of a string
+    std::string toUpper(std::string str);
+
 private:
     std::unordered_map<std::string, std::shared_ptr<Database>> databases;   // Database Storage <database_name, database*>
     std::unordered_map<std::string, unsigned int> commands;                 // Command Storage <command_name, command_id>
+    std::unordered_map<std::string, unsigned int> types;                    // Supported column Types <type_name, id>
     std::shared_ptr<Database> database;                                     // The selected database
     unsigned int database_count;                                            // The number of stored databases
 };
