@@ -1,3 +1,6 @@
+#ifndef INCLUDE_H_
+#define INCLUDE_H_
+
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -11,4 +14,34 @@
 #include <algorithm>
 #include <queue>
 #include <ctype.h>
+#include <numeric>
 
+// Converts a string to upper case
+static std::string _toUpper(std::string str)
+{
+    // Create a temp string of size 'str'
+    std::string up;
+    up.reserve(str.size());
+
+    // Convert each letter of 'str' to uppercase and append to 'up'
+    for (auto& c : str) up += ::toupper(c);
+    
+    // Return the uppercase string
+    return up;
+}
+
+// Joins a vector of strings by a delimeter
+static std::string _join(std::vector<std::string> stringVector, std::string delim = "")
+{
+    return std::accumulate(stringVector.begin(), stringVector.end(), delim);
+}
+// Returns a subvector
+template<typename T>
+static auto _subVector(const std::vector<T>& vec, typename std::vector<T>::const_iterator left, typename std::vector<T>::const_iterator right) -> std::vector<T>
+{
+    // Return a vector in range of a left iterator to a right iterator
+    return std::vector<T>(left, right);
+}
+
+
+#endif // INCLUDE_H_
