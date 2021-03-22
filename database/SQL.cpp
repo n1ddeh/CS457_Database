@@ -89,8 +89,8 @@ bool SQL::createDatabase(const std::vector<std::string>& args)
     // Check if the number of argument supplied is less than the argument required
     if (argn < max_argn) { std::cout << "-- [CMD - CREATE - ERROR] -> Supplied argument count (" << argn << ") does not match required argument count (" << max_argn << ")\n"; return false; }
 
-    const std::string command_name  = args[0];
-    const std::string database      = args[1];
+    const std::string command_name  = _toUpper(args[0]);
+    const std::string database      = _toUpper(args[1]);
     const std::string database_name = args[2];
 
     // Check that the arguments are correct
@@ -132,8 +132,8 @@ bool SQL::dropDatabase(const std::vector<std::string>& args)
 
     if (argn < max_argn) { std::cout << "-- [CMD - DROP - ERROR] -> Supplied argument count (" << argn << ") does not match required argument count (" << max_argn << ")\n"; return false; }
 
-    const std::string command_name  = args[0];
-    const std::string database      = args[1];
+    const std::string command_name  = _toUpper(args[0]);
+    const std::string database      = _toUpper(args[1]);
     const std::string database_name = args[2];
 
     // Check that the arguments are correct
@@ -170,8 +170,8 @@ bool SQL::createTable(const std::vector<std::string>& args)
 {
     const unsigned int argn = args.size();
 
-    const std::string command = args[0];
-    const std::string table = args[1];
+    const std::string command = _toUpper(args[0]);
+    const std::string table = _toUpper(args[1]);
     const std::string table_name = args[2];
     std::vector<std::pair<std::string, std::string>> columns;
 
@@ -223,8 +223,8 @@ bool SQL::dropTable(const std::vector<std::string>& args)
 {
     const unsigned int argn = args.size();
 
-    const std::string command = args[0];
-    const std::string table = args[1];
+    const std::string command = _toUpper(args[0]);
+    const std::string table = _toUpper(args[1]);
     const std::string table_name = args[2];
 
     if (command != "DROP" || table != "TABLE")
