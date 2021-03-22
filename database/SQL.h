@@ -77,12 +77,18 @@ public:
     void initializeTypes();
 
     /** Given a vector of types, determine if they are supported*/
-    bool checkTypes(const std::vector<std::string>& types);
+    bool checkTypes(std::vector<std::string> types);
 
     /**   dbSelected
      *  Returns true if a database is selected
      *  or false if not */
     bool dbExists(const std::string& database_name);
+    
+    /** Handles the INSERT INTO command */
+    bool insertInto(const std::vector<std::string>& args);
+
+    /** Parses a params string x,y,z,... and puts them in a string vector container*/
+    std::vector<std::string> isolateParams(std::string params, char delim = ',');
 
     // database_count getters/mutators
     unsigned int getDatabaseCount() { return this->database_count; }
@@ -104,9 +110,6 @@ public:
     bool parenthesisBalance(std::string s);
 
     void errorUnknownArguments(const std::vector<std::string>& args, const std::string& cmd, unsigned int index = 0);
-
-    // Return an upper-case version of a string
-    std::string toUpper(std::string str);
 
 private:
     std::unordered_map<std::string, std::shared_ptr<Database>> databases;   // Database Storage <database_name, database*>

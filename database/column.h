@@ -3,33 +3,27 @@
 
 #include "include.h"
 
-/**
- * struct ColumnData
- * * metadata for columns
- * */
-typedef struct ColumnData
-{
-    std::string name;
-    unsigned int dataType;
-    unsigned int id;
-
-    ColumnData(std::string name, unsigned int dataType, unsigned int id) :
-        name(name), dataType(dataType), id(id) {}
-
-} ColumnData;
-
-template <class DataType>
+template <class T>
 class Column
 {
 private:
-    std::string column; // name of column
-    std::string dataType;   // type of elements it stores
-    std::vector<DataType> elements;
-    unsigned int CHAR_MAX;
+    std::string column_name;        // Column Name
+    unsigned int data_type;         // type of elements it stores
+    std::vector<T> elements;        // Container for elements
+    size_t CHAR_MAX;                // Used for VARCHAR types
 
 public:
-    Column();
-    Column(std::string column = "undefined", unsigned int dataType = 0, std::vector<DataType>& elements = new std::vector<DataType>());
+    Column(std::string, std::vector<int>);
+    Column(std::string, std::vector<float>);
+    Column(std::string, std::vector<char>);
+    Column(std::string, std::vector<std::string>, size_t);
+
+    bool insertElement(T);
+
+    std::string getName() {return this->column_name;}
+    unsigned int getDataType() {return this->data_type;}
+    std::vector<T> getElements() {return this->elements;}
+    size_t getCharMax() {return this->CHAR_MAX;}
 };
 
 #endif // COLUMN_H_

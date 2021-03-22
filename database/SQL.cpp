@@ -52,7 +52,7 @@ void SQL::SQL_CLI()
     // Check if the user input has balanced parenthsis, if not issue some error
     if (!parenthesisBalance(input))
     {
-        std::cout << "-- !Parenthsis are not balanced in input:\n\t" << input << "\n";
+        std::cout << "-- !Parenthsis are not balanced in input: " << input << "\n";
         return SQL_CLI();
     }
 
@@ -310,7 +310,7 @@ bool SQL::HANDLE_CMD(std::vector<std::string> args)
 
     try {
         // Grab the commands from the provided arguments
-        std::string command = args[0];
+        std::string command = _toUpper(args[0]);
 
         // Check if command exists, if it doesn't return 0
         if (!cmdExists(command)) {
@@ -322,17 +322,24 @@ bool SQL::HANDLE_CMD(std::vector<std::string> args)
 
         if (command_id == 0)     // CREATE COMMAND HANDLER
         {
-            const std::string create_type = args[1];
+            const std::string create_type = _toUpper(args[1]);
             if (create_type == "DATABASE") return createDatabase(args);
             else if (create_type == "TABLE") return createTable(args);
-            else std::cout << create_type << " is not a valid argument of command CREATE.\n";
+            else {
+                std::cout << create_type << " is not a valid argument of command CREATE.\n";
+                return false;
+            }
         }
         else if (command_id == 1) // DROP COMMAND HANDLER
         {
-            const std::string drop_type = args[1];
+            const std::string drop_type = _toUpper(args[1]);
             if (drop_type == "DATABASE") return dropDatabase(args);
             else if (drop_type == "TABLE") return dropTable(args);
-            else std::cout << drop_type << " is not a valid argument of command DROP.\n";
+            else 
+            { 
+                std::cout << drop_type << " is not a valid argument of command DROP.\n";
+                return false;
+            }
         }
         else if (command_id == 2) // USE COMMAND HANDLER
         {
@@ -342,9 +349,18 @@ bool SQL::HANDLE_CMD(std::vector<std::string> args)
         {
             return alterTable(args);
         }
-        else if (command_id == 4)
+        else if (command_id == 4) // SELECT COMMAND HANDLER
         {
             return selectTable(args);
+        }
+        else if (command_id == 5) // INSERT COMMAND HANDLER
+        {
+            const std::string insert_type = _toUpper(args[1]);
+            if (insert_type == "INTO") return insertInto(args);
+            else {
+                std::cout << "-- Invalid insert specifyer: " << insert_type << "\n";
+                return false;
+            }
         }
     }
     catch(const std::exception& e)
@@ -352,7 +368,7 @@ bool SQL::HANDLE_CMD(std::vector<std::string> args)
         std::cerr << e.what() << "\n";
     }
 
-    return 1;
+    return true;
 }
 
 bool SQL::dbExists(const std::string& database_name)
@@ -510,9 +526,9 @@ bool SQL::selectTable(const std::vector<std::string>& args)
 {
     const unsigned int argn = args.size();
 
-    std::string command = args[0];
-    std::string select_type = args[1];
-    std::string from = args[2];
+    std::string command = _toUpper(args[0]);
+    std::string select_type = _toUpper(args[1]);
+    std::string from = _toUpper(args[2]);
     std::string table_name = args[3];
 
 
@@ -545,7 +561,8 @@ bool SQL::selectTable(const std::vector<std::string>& args)
 
     if (select_type == "*") 
     {
-        return selectAllFromTable(table_name);
+        std::shared_ptr<Table> table = this->database->getTable(table_name);
+        return table->printAll();
     }
     else {
         std::cout << "-- !Unknown argument from command SELECT: " << select_type <<  ". Did you mean '*' ?\n";
@@ -606,13 +623,18 @@ void SQL::initializeTypes()
     this->types.insert(type3);
 }
 
-bool SQL::checkTypes(const std::vector<std::string>& types)
+/*  From a list of types, check if any are invalid
+    Print all invalid types 
+    Return true if there are no errors
+    Return false if there are errors */
+bool SQL::checkTypes(std::vector<std::string> types)
 {
+    // Initialize errors container
     std::vector<std::string> errors;
 
-    for (auto& type: types)
+    for (auto type: types)
     {
-        std::string upperType = toUpper(type);
+        std::string upperType = _toUpper(type);
         if (!this->types.count(upperType))
         {
             // Check if this is a VARCHAR and parathensis are formatted correctly
@@ -660,15 +682,107 @@ bool SQL::checkTypes(const std::vector<std::string>& types)
     return true;
 }
 
-std::string SQL::toUpper(std::string str)
+bool SQL::insertInto(const std::vector<std::string>& args)
 {
-    // Create a temp string of size 'str'
-    std::string up;
-    up.reserve(str.size());
+    const std::string command = _toUpper(args[0]);
+    const std::string command_type = _toUpper(args[1]);
 
-    // Convert each letter of 'str' to uppercase and append to 'up'
-    for (auto& c : str) up += ::toupper(c);
-    
-    // Return the uppercase string
-    return up;
+    // Make sure we are handling the correct command
+    if (command != "INSERT" && command_type != "INTO")
+    {
+        std::cout << "-- Programmer error in insertInto :(\n";
+        return 0;
+    }
+
+    // Ensure a database is selected
+    if (!dbSelected())
+    {
+        std::cout << "-- Database not selected\n";
+        return false;
+    }
+
+    const std::string table_name = args[2];
+
+    // Ensure table exists in the selected database
+    const bool table_exists = this->database->tableExists(table_name);
+    if (!table_exists)
+    {
+        std::cout << "-- Table " << table_name << " does not exist in database " << database->getDatabaseName() << "\n";
+        return false;
+    }
+
+    // Create a sub vector of just the parameters
+    std::vector<std::string> paramsVec = _subVector(args, args.begin() + 3, args.end());
+
+    // Join the parameters as a string with space as delimeter
+    std::string paramsString = _join(paramsVec, std::string(" "));
+
+    // Ensure the user specified correct formatting
+    std::string values = _toUpper(std::string(paramsString.begin() + 1, paramsString.begin() + 8));
+    if (values != "VALUES(" || paramsString.back() != ')') 
+    {
+        std::cout << "-- INSERT INTO parameters not formatted correctly. Correct format is VALUES(x, y, z, ...)\n";
+        return false;
+    }
+
+    // Parse the parameters we want to insert: parse format =  x,y,z,...
+    std::string paramsParsed = std::string(paramsString.begin() + 8, paramsString.end() - 1);
+
+    // Isolate the parameters without their delimeters
+    std::vector<std::string> isolatedParams = isolateParams(paramsParsed);
+
+    // Get a pointer to the table we want to insert into
+    std::shared_ptr<Table> table = this->database->getTable(table_name);
+
+    // Return the insertRow function in table
+    bool success = table->insertRow(isolatedParams);
+
+    if (!success) return false;
+
+    std::cout << " -- 1 new record inserted.\n"; 
+
+    return true;
+}
+
+std::vector<std::string> SQL::isolateParams(std::string params, char delim)
+{
+    // Initialize an empty vector container of strings for each parameter in params
+    std::vector<std::string> container((size_t)1, std::string(""));
+
+    // Initialize index to track each position of the container to insert characters into
+    size_t index = 0;
+
+    // Initialize stack to track if we are parsing quotes and therefore a varchar
+    std::stack<char> quotes;
+
+    // Iterate over every character of params, and parse each parameter
+    for (auto& c : params) 
+    {
+        // The comma is a delimeter, so it marks the start of the next parameter unless we are parsing a varchar
+        if (c == delim && quotes.empty()) 
+        {
+            ++index;
+            container.emplace_back(std::string(""));
+        }
+        // Parsing the character " so insert into stack if applicable 
+        else if (c == 34) 
+        { 
+            if (!quotes.empty() && quotes.top() == 34) quotes.pop();
+            else if (quotes.empty() && (container[index].empty())) quotes.push(34);
+            else container[index] += c;
+        }
+        // Parsing the character ' so insert into stack if applicable 
+        else if (c == 39) 
+        {
+            if (!quotes.empty() && quotes.top() == 39) quotes.pop();
+            else if (quotes.empty() && (container[index].empty())) quotes.push(39); 
+            else container[index] += c;
+        }
+        // Valid character is appended into the container at index
+        else {
+            container[index] += c;
+        }
+    }
+
+    return container;
 }

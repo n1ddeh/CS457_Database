@@ -14,7 +14,9 @@ bool Database::tableExists(const std::string& table_name)
 bool Database::createTable(std::string table_name, std::vector<std::pair<std::string, std::string>> columns)
 {
     std::shared_ptr<Table> new_table = std::make_shared<Table>(table_name, columns);
+
     this->tables.insert(std::make_pair(table_name, new_table));
+    
     return true;
 }
 
@@ -33,7 +35,7 @@ bool Database::printTableColumnInfo(const std::string& table_name)
     if (tableExists(table_name))
     {
         std::shared_ptr<Table> table = getTable(table_name);
-        table->printColumnMetaData();
+        
         return true;
     }
     return false;
@@ -53,7 +55,7 @@ bool Database::addColumnsToTable(const std::string& table_name, std::vector<std:
     std::shared_ptr<Table> table = getTable(table_name);
     for (int i = 0; i < columns.size(); i++)
     {
-        table->addColumnToMetaData(columns[i]);
+        
     }
     return true;
 }

@@ -8,33 +8,30 @@ class Table
 {
 private:
     std::string table_name;                                            // Table name
-    std::vector<std::pair<std::string, std::string>> column_meta_data; // Vector of pairs of column_name and column types 
+    std::vector<std::pair<std::string, std::string>> column_meta_data; // Vector of pairs of column_name and column types
     unsigned int column_count;                                         // Number of columns
+    unsigned int row_count;                                            // number of rows
 
-    std::map<std::size_t, Column<int>>          INT_COLUMNS;        // DataType: 0 : Stores all INT columns
-    std::map<std::size_t, Column<float>>        FLOAT_COLUMNS;      // DataType: 1 : Stores all FLOAT columns
-    std::map<std::size_t, Column<char*>>        CHAR_COLUMNS;       // DataType: 2 : Stores all CHAR(_) columns
-    std::map<std::size_t, Column<std::string>>  VARCHAR_COLUMNS;    // DataType: 3 : Stores all VARCHAR columns
-
-    std::vector<ColumnData> columns; // Stores column name, type, and ID in order of creation
+    std::vector<std::variant<std::shared_ptr<Column<int>>, std::shared_ptr<Column<float>>, std::shared_ptr<Column<char>>, std::shared_ptr<Column<std::string>>>> columns;
 
 public:
     Table(std::string table, std::vector<std::pair<std::string, std::string>> column_meta_data);
     ~Table();
 
-    bool insertColumn(std::string column = "undefined", const std::vector<int>&         column_data = std::vector<int>());
-    bool insertColumn(std::string column = "undefined", const std::vector<float>&       column_data = std::vector<float>());
-    bool insertColumn(std::string column = "undefined", const std::vector<char*>&       column_data = std::vector<char*>());
-    bool insertColumn(std::string column = "undefined", const std::vector<std::string>& column_data = std::vector<std::string>());
+    bool createIntColumn(std::string);
+    bool createFloatColumn(std::string);
+    bool createCharColumn(std::string);
+    bool createVarCharColumn(std::string, size_t);
 
-    bool addColumnToMetaData(std::pair<std::string, std::string> column_info);
-    void printColumnMetaData();
+    bool insertRow(const std::vector<std::string>&);
+
+    bool printAll();
 
     // Getters
     std::string getTable() { return this->table_name; }
-    unsigned int getColumnCount() { return this->column_count; }
+    unsigned int columnCount() { return this->column_count; }
     // Setters
-    void setTable(std::string tableName) { this->table_name = tableName; }
+    void setTableName(const std::string& name) { this->table_name = name; }
     void incrementColumnCount() { this->column_count++; }
     void decrementColumnCount() { this->column_count--; }
 };
