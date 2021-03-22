@@ -13,6 +13,22 @@ SQL::SQL() : database_count(0)
     SQL_CLI();
 }
 
+SQL::SQL(std::string filePath)
+{
+    std::ifstream in(filePath);
+
+    std::string str;
+
+    while (std::getline(in, str))
+    {
+        if (str.size() > 2 && str[0] != '-' && str[1] != '-') this->arguments.push(str);
+    }
+
+    initializeCommands();
+    initializeTypes();
+    SQL_CLI();
+}
+
 SQL::~SQL()
 {
     std::cout << "-- All done.\n";
@@ -46,8 +62,56 @@ void SQL::SQL_CLI()
     // The user input
     std::string input;
 
-    // Request user input from console
-    std::getline(std::cin, input);
+    // File input
+    if (!this->arguments.empty())
+    {
+        input = this->arguments.front();
+
+        // Replace multiple tabs and spaces with a single space
+        std::regex regx("[ \t]+");
+        input = std::regex_replace(input, regx, std::string(" "));
+
+        // Trim spaces from beginning and end
+        input = _trim(input);
+
+        this->arguments.pop();
+
+        while(!this->arguments.empty() && input.back() != ';')
+        {
+            std::string temp = this->arguments.front();
+
+            temp = std::regex_replace(temp, regx, std::string(" "));
+
+            // Trim spaces from beginning and end
+            temp = _trim(temp);
+
+            input += ' ';
+            input += temp;
+
+            this->arguments.pop();
+        }
+        
+        std::cout << input << "\n";
+
+        if (input == ".exit") return;
+
+        input.pop_back();
+    }
+    else 
+    {
+        // Request user input from console
+        std::getline(std::cin, input);
+
+        while (input.back() != ';') {
+            std::string temp; 
+            std::getline(std::cin, temp);
+            if (temp != ";") 
+            {
+                input += ' ';
+            }
+            input += temp;
+        }
+    }
 
     // Check if the user input has balanced parenthsis, if not issue some error
     if (!parenthesisBalance(input))
@@ -57,7 +121,7 @@ void SQL::SQL_CLI()
     }
 
     // The exit condition for the CLI
-    if (input == ".EXIT" || input == "EXIT")
+    if (_toUpper(input) == ".EXIT" || _toUpper(input) == "EXIT")
     {
         return;
     }
@@ -274,7 +338,7 @@ bool SQL::useDatabase(const std::vector<std::string>& args)
         return false;
     }
 
-    if (args[0] != "USE")
+    if (_toUpper(args[0]) != "USE")
     {
         std::cout << "-- !Programmer error in SQL::useDatabase, contact administrator.\n";
         return false;
@@ -304,10 +368,6 @@ bool SQL::useDatabase(const std::vector<std::string>& args)
 
 bool SQL::HANDLE_CMD(std::vector<std::string> args)
 {
-    // Not the best handling of the semicolon lol but i'll eventually make a queue of commands
-    // for now we can only run one command at a time
-    if (args.back().back() == ';') { (args.back()).pop_back(); } 
-
     try {
         // Grab the commands from the provided arguments
         std::string command = _toUpper(args[0]);

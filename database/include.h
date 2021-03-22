@@ -17,6 +17,8 @@
 #include <numeric>
 #include <variant>
 #include <cmath>
+#include <fstream>
+#include <regex>
 
 // Converts a string to upper case
 static std::string _toUpper(std::string str)
@@ -53,6 +55,29 @@ static float _roundFloat(float num, unsigned int sig_figs)
     float res = std::round(num * power_of_10)  / power_of_10;
 
     return res;
+}
+
+static std::string _trimEnd(std::string source) 
+{
+    source.erase(std::find_if(source.rbegin(), source.rend(), [](char c) 
+    {
+        return !std::isspace(static_cast<unsigned char>(c));
+    }).base(), source.end());
+    return source;
+}
+
+static std::string _trimStart(std::string source) 
+{
+    source.erase(source.begin(), std::find_if(source.begin(), source.end(), [](char c) 
+    {
+        return !std::isspace(static_cast<unsigned char>(c));
+    }));
+    return source;
+}
+
+static std::string _trim(std::string source) 
+{
+        return _trimEnd(_trimStart(source));
 }
 
 #endif // INCLUDE_H_

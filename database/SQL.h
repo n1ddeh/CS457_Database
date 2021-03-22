@@ -17,6 +17,7 @@ public:
      *  Default Constructor
      * */
     SQL();
+    SQL(std::string);
     ~SQL();
 
     void initializeCommands();
@@ -117,6 +118,7 @@ private:
     std::unordered_map<std::string, unsigned int> types;                    // Supported column Types <type_name, id>
     std::shared_ptr<Database> database;                                     // The selected database
     unsigned int database_count;                                            // The number of stored databases
+    std::queue<std::string> arguments;
 };
 
 
