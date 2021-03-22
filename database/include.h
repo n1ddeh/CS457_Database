@@ -15,6 +15,8 @@
 #include <queue>
 #include <ctype.h>
 #include <numeric>
+#include <variant>
+#include <cmath>
 
 // Converts a string to upper case
 static std::string _toUpper(std::string str)
@@ -43,5 +45,14 @@ static auto _subVector(const std::vector<T>& vec, typename std::vector<T>::const
     return std::vector<T>(left, right);
 }
 
+// Rounds a floating point number by a set number of significant digits
+static float _roundFloat(float num, unsigned int sig_figs) 
+{
+    float power_of_10 = std::pow(10, sig_figs);
+
+    float res = std::round(num * power_of_10)  / power_of_10;
+
+    return res;
+}
 
 #endif // INCLUDE_H_
