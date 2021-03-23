@@ -91,6 +91,12 @@ public:
     /** Parses a params string x,y,z,... and puts them in a string vector container*/
     std::vector<std::string> isolateParams(std::string params, char delim = ',');
 
+    /** Handles the UPDATE {{ table_name }} command */
+    bool updateTable(const std::vector<std::string>& args);
+
+    /** Handles the DELETE FROM {{ table_name }} command */
+    bool deleteFromTable(const std::vector<std::string>& args);
+
     // database_count getters/mutators
     unsigned int getDatabaseCount() { return this->database_count; }
     void incrementDatabaseCount() { this->database_count++; }

@@ -23,9 +23,18 @@ public:
     bool createCharColumn(std::string);
     bool createVarCharColumn(std::string, size_t);
 
+    bool updateColumnSet(const std::string&, const std::string&, const std::string&, const std::string&, const std::string&);
+    bool deleteFromTable(const std::string&, const std::string&, const std::string&);
+
     bool insertRow(const std::vector<std::string>&);
 
+    bool deleteRow(const size_t);
+
     bool printAll();
+
+    long int columnIndexFromName(const std::string&);
+
+    
 
     // Getters
     std::string getTable() { return this->table_name; }
@@ -34,5 +43,7 @@ public:
     void setTableName(const std::string& name) { this->table_name = name; }
     void incrementColumnCount() { this->column_count++; }
     void decrementColumnCount() { this->column_count--; }
+    void incrementRowCount() { this->row_count++; }
+    void decrementRowCount() { this->row_count--; }
 };
 #endif //TABLE_H_

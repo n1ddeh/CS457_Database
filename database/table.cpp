@@ -272,3 +272,228 @@ bool Table::printAll()
     }
     return true;
 }
+
+long int Table::columnIndexFromName(const std::string& column_name)
+{
+    long int index = 0;
+    for (auto& col_data : this->column_meta_data) {
+        std::string name = std::get<0>(this->column_meta_data[index]);
+        if (name == column_name) return index;
+        index++;
+    }
+    return (long int) -1;
+}
+
+bool Table::updateColumnSet(
+    const std::string& column_to_update,
+    const std::string& column_to_search,
+    const std::string& value_to_update,
+    const std::string& value_to_search,
+    const std::string& op
+)
+{
+    long int update_colum_index = columnIndexFromName(column_to_update);
+    if (update_colum_index == (long int)-1) { std::cout << "-- !Failed to update table " << table_name << " because column " << column_to_update << " does not exist.\n"; return false; }
+
+    long int search_colum_index = (column_to_update == column_to_search) ? update_colum_index : columnIndexFromName(column_to_search);
+    if (search_colum_index == (long int)-1) { std::cout << "-- !Failed to update table " << table_name << " because column " << search_colum_index << " does not exist.\n"; return false; }
+
+    size_t rows_affected = 0;
+
+    // initialize container for the indicies we want to update in 'column_to_update'
+    std::unordered_set<size_t> elements_to_update;
+
+    try
+    {
+        if (auto col = std::get_if<std::shared_ptr<Column<int>>>(&(this->columns[search_colum_index])))
+        {
+            // Get a pointer to the column
+            std::shared_ptr<Column<int>> column = *col;
+
+            // Search column 
+            elements_to_update = column->filterElements(op, std::stoi(value_to_search));
+        }
+        else if (auto col = std::get_if<std::shared_ptr<Column<float>>>(&(this->columns[search_colum_index])))
+        {
+            // Get a pointer to the column
+            std::shared_ptr<Column<float>> column = *col;
+
+            elements_to_update = column->filterElements(op, std::stof(value_to_search));
+        }
+        else if (auto col = std::get_if<std::shared_ptr<Column<char>>>(&(this->columns[search_colum_index])))
+        {
+            // Get a pointer to the column
+            std::shared_ptr<Column<char>> column = *col;
+
+            elements_to_update = column->filterElements(op, value_to_search[0]);
+        }
+        else if (auto col = std::get_if<std::shared_ptr<Column<std::string>>>(&(this->columns[search_colum_index])))
+        {
+            // Get a pointer to the column
+            std::shared_ptr<Column<std::string>> column = *col;
+
+            elements_to_update = column->filterElements(op, value_to_search);
+        }
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << "\n";
+        return false;
+    }
+
+    try 
+    {
+        if (!elements_to_update.empty()) 
+        {
+            if (auto col = std::get_if<std::shared_ptr<Column<int>>>(&(this->columns[update_colum_index]))) {
+                // Get a pointer to the column
+                std::shared_ptr<Column<int>> column = *col;
+
+                // Update the column based on provided indicies
+                rows_affected = column->updateElementsOnIndex(elements_to_update, std::stoi(value_to_update));
+            }
+            else if (auto col = std::get_if<std::shared_ptr<Column<float>>>(&(this->columns[update_colum_index]))) {
+                // Get a pointer to the column
+                std::shared_ptr<Column<float>> column = *col;
+
+                // Update the column based on provided indicies
+                rows_affected = column->updateElementsOnIndex(elements_to_update, std::stof(value_to_update));            
+            }
+            else if (auto col = std::get_if<std::shared_ptr<Column<char>>>(&(this->columns[update_colum_index])))
+            {
+                // Get a pointer to the column
+                std::shared_ptr<Column<char>> column = *col;
+
+                // Update the column based on provided indicies
+                rows_affected = column->updateElementsOnIndex(elements_to_update, value_to_update[0]);
+            }
+            else if (auto col = std::get_if<std::shared_ptr<Column<std::string>>>(&(this->columns[update_colum_index])))
+            {
+                // Get a pointer to the column
+                std::shared_ptr<Column<std::string>> column = *col;
+
+                // Update the column based on provided indicies
+                rows_affected = column->updateElementsOnIndex(elements_to_update, value_to_update);   
+            }
+        }
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << "\n";
+        return false;
+    }
+
+    std::cout << "-- " << rows_affected << " records modified.\n";
+
+    return true;
+}
+
+bool Table::deleteRow(const size_t row)
+{
+    if (row >= this->row_count) {
+        std::cout << "-- !Cannot delete row " << row << " from table " << this->table_name << ".\n";
+        return false;
+    }
+
+    try 
+    {
+        for (size_t index = 0; index < this->column_count; index++)
+        {
+            if (auto col = std::get_if<std::shared_ptr<Column<int>>>(&(this->columns[index]))) 
+            {
+                // Get a pointer to the column
+                std::shared_ptr<Column<int>> column = *col;
+
+                column->deleteElement(row);
+            }
+            else if (auto col = std::get_if<std::shared_ptr<Column<float>>>(&(this->columns[index]))) 
+            {
+                // Get a pointer to the column
+                std::shared_ptr<Column<float>> column = *col;
+
+                column->deleteElement(row);
+            }
+            else if (auto col = std::get_if<std::shared_ptr<Column<char>>>(&(this->columns[index]))) 
+            {
+                // Get a pointer to the column
+                std::shared_ptr<Column<char>> column = *col;
+
+                column->deleteElement(row);
+            }
+            else if (auto col = std::get_if<std::shared_ptr<Column<std::string>>>(&(this->columns[index]))) 
+            {
+                // Get a pointer to the column
+                std::shared_ptr<Column<std::string>> column = *col;
+
+                column->deleteElement(row);
+            }
+        }
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << "\n";
+        return false;
+    }
+
+    this->decrementRowCount();
+
+    return true;
+}
+
+bool Table::deleteFromTable(const std::string& column_to_search, const std::string& value_to_search, const std::string& opr)
+{
+    long int search_column_index = columnIndexFromName(column_to_search);
+    if (search_column_index == (long int)-1) { std::cout << "-- !Failed to delete from table " << this->table_name << " because column " << column_to_search << " does not exist.\n"; return false; }
+
+    std::unordered_set<size_t> indicies_to_delete;
+
+    if (auto col = std::get_if<std::shared_ptr<Column<int>>>(&(this->columns[search_column_index])))
+    {
+        // Get a pointer to the column
+        std::shared_ptr<Column<int>> column = *col;
+
+        // Get the indicies of the rows we want to delete  
+        indicies_to_delete = column->filterElements(opr, std::stoi(value_to_search));
+    }
+    else if (auto col = std::get_if<std::shared_ptr<Column<float>>>(&(this->columns[search_column_index])))
+    {
+        // Get a pointer to the column
+        std::shared_ptr<Column<float>> column = *col;
+
+        // Get the indicies of the rows we want to delete  
+        indicies_to_delete = column->filterElements(opr, std::stof(value_to_search));
+    }
+    else if (auto col = std::get_if<std::shared_ptr<Column<char>>>(&(this->columns[search_column_index])))
+    {
+        // Get a pointer to the column
+        std::shared_ptr<Column<char>> column = *col;
+
+        // Get the indicies of the rows we want to delete  
+        indicies_to_delete = column->filterElements(opr, value_to_search[0]);
+    }
+    else if (auto col = std::get_if<std::shared_ptr<Column<std::string>>>(&(this->columns[search_column_index])))
+    {
+        // Get a pointer to the column
+        std::shared_ptr<Column<std::string>> column = *col;
+
+        // Get the indicies of the rows we want to delete  
+        indicies_to_delete = column->filterElements(opr, value_to_search);
+    }
+
+    // Initialize the number of rows deleted
+    size_t count = 0;
+
+    // Check if there are rows to delete
+    if (!indicies_to_delete.empty())
+    {
+        // For every row index, delete the row and increment the count
+        for (auto& index : indicies_to_delete)
+        {
+            if (this->deleteRow(index)) ++count;
+        }
+    }
+
+    std::cout << "-- " << count << " records deleted.\n";
+
+    return true; 
+}

@@ -37,7 +37,7 @@ SQL::~SQL()
 void SQL::initializeCommands()
 {
     // Specify command count and reserve memory in the unordered map for them
-    std::size_t NUM_COMMANDS = 6;
+    std::size_t NUM_COMMANDS = 8;
     this->commands.reserve(NUM_COMMANDS);
 
     // Asign commands value pairs
@@ -47,6 +47,8 @@ void SQL::initializeCommands()
     std::pair<std::string, unsigned int> cmd3("ALTER",  3);
     std::pair<std::string, unsigned int> cmd4("SELECT", 4);
     std::pair<std::string, unsigned int> cmd5("INSERT", 5);
+    std::pair<std::string, unsigned int> cmd6("UPDATE", 6);
+    std::pair<std::string, unsigned int> cmd7("DELETE", 7);
 
     // Insert commands into unordered map
     this->commands.insert(cmd0);
@@ -55,6 +57,8 @@ void SQL::initializeCommands()
     this->commands.insert(cmd3);
     this->commands.insert(cmd4);
     this->commands.insert(cmd5);
+    this->commands.insert(cmd6);
+    this->commands.insert(cmd7);
 }
 
 void SQL::SQL_CLI()
@@ -102,6 +106,8 @@ void SQL::SQL_CLI()
         // Request user input from console
         std::getline(std::cin, input);
 
+        if (input == ".exit") return;
+
         while (input.back() != ';') {
             std::string temp; 
             std::getline(std::cin, temp);
@@ -111,6 +117,8 @@ void SQL::SQL_CLI()
             }
             input += temp;
         }
+
+        input.pop_back();
     }
 
     // Check if the user input has balanced parenthsis, if not issue some error
@@ -422,6 +430,14 @@ bool SQL::HANDLE_CMD(std::vector<std::string> args)
                 return false;
             }
         }
+        else if (command_id == 6) // UPDATE COMMAND HANDLER
+        {
+            return updateTable(args);
+        }
+        else if (command_id == 7) // DELETE COMMAND HANDLER
+        {
+            return deleteFromTable(args);
+        }
     }
     catch(const std::exception& e)
     {
@@ -632,8 +648,17 @@ bool SQL::selectTable(const std::vector<std::string>& args)
 
 bool SQL::selectAllFromTable(const std::string& table_name)
 {
-    this->database->printTableColumnInfo(table_name);
-    return true;
+    try {
+        std::shared_ptr<Table> table = this->database->getTable(table_name);
+
+        return table->printAll();
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << "\n";
+    }
+    
+    return false;
 }
 
 bool SQL::alterTable(const std::vector<std::string>& args)
@@ -799,7 +824,7 @@ bool SQL::insertInto(const std::vector<std::string>& args)
 
     if (!success) return false;
 
-    std::cout << " -- 1 new record inserted.\n"; 
+    std::cout << "-- 1 new record inserted.\n"; 
 
     return true;
 }
@@ -845,4 +870,131 @@ std::vector<std::string> SQL::isolateParams(std::string params, char delim)
     }
 
     return container;
+}
+
+bool SQL::updateTable(const std::vector<std::string>& args)
+{
+    // Grab the command
+    const std::string command = _toUpper(args[0]);
+
+    // The function handles the UPDATE {{ table_name }} SET .. command.
+    if (command != "UPDATE") { std::cout << "-- Programmer error in updateTable\n"; return false; }
+
+    // If the database has NOT been selected, alert the user and return false.
+    if (!dbSelected()) { std::cout << "-- Database not selected\n"; return false; }
+
+    // Grab the table name
+    const std::string table_name = args[1];
+
+    // If the table does NOT exist, alert the user and return false
+    if (!this->database->tableExists(table_name)) { std::cout << "-- !Failed to update table " << table_name << " because it does not exist.\n"; return false; }
+
+    // Grab the SET keyword
+    const std::string set = _toUpper(args[2]);
+
+    // Only the SET keyword is allowed for the UPDATE {{ table_name }} command.
+    // If the argument is not SET alert the user and return false
+    if (set != "SET") { std::cout << "-- Unknown command " << set << ". Did you mean SET?\n"; return false; }
+
+    // Get the name of the column we want to update
+    const std::string column_to_update = args[3];
+
+    // Fetch the table ptr
+    std::shared_ptr<Table> table = this->database->getTable(table_name);
+
+    // Get the first operator, this should always be '='
+    const std::string op1 = args[4];
+    
+    // If the operator is NOT '=' alert the user and return false.
+    if (op1 != "=") { std::cout << "-- !Failed to update table " << table_name << " because the first operator " << op1 << " is not supported. Did you mean '='?\n"; return false; }
+
+    // Get the value we want to update
+    std::string value_to_update = args[5];
+
+    // If the first and last characer are single or doubles quotes, erase and the first and last character
+    if (value_to_update.size() > 2 && 
+        ((value_to_update[0] == 39 && value_to_update.back() == 39) || (value_to_update[0] == 34 && value_to_update.back() == 34))
+    ) 
+    {
+        value_to_update = value_to_update.substr(1, value_to_update.size() - 2);
+    }
+
+    // Get the query parameter 'WHERE', we expect this to always be included
+    const std::string where = _toUpper(args[6]);
+
+    if (where != "WHERE") { std::cout << "--!Failed to update table " << table_name << ". Unknown argument " << where << ". Did you mean 'WHERE'?\n"; return false; }
+
+    // Get the name of the column we want to search
+    const std::string column_to_search = args[7];
+
+    // Get the second operator
+    const std::string op2 = args[8];
+
+    // If this is NOT a valid operator, return false
+    if (!_isValidOperator(op2)) { std::cout << "-- !Failed to update table " << table_name << " because the second operator " << op2 << " is not supported. Did you mean '='?\n"; return false; }
+
+    // Get the value we want to search for
+    std::string value_to_search = args[9];
+
+    // If the first and last characer are single or doubles quotes, erase and the first and last character
+    if (value_to_search.size() > 2 && 
+        ((value_to_search[0] == 39 && value_to_search.back() == 39) || (value_to_search[0] == 34 && value_to_search.back() == 34))
+    ) 
+    {
+        value_to_search = value_to_search.substr(1, value_to_search.size() - 2);
+    }
+
+    // Query the table to update based on these parameters
+    return table->updateColumnSet(column_to_update, column_to_search, value_to_update, value_to_search, op2);
+}
+
+bool SQL::deleteFromTable(const std::vector<std::string>& args)
+{
+    // Get the command from the arguments
+    const std::string command = _toUpper(args[0]);
+
+    // The function handles the DELETE {{ table_name }} FROM .. command. 
+    if (command != "DELETE") { std::cout << "-- Programmer error in deleteFromTable\n"; return false; }
+
+    // Get the 'FROM' keyword
+    const std::string from = _toUpper(args[1]);
+    
+    // Only the FROM keyword is allowed for the DELETE FROM {{ table_name }} command.
+    // If the argument is not FROM alert the user and return false
+    if (from != "FROM") { std::cout << "-- Unknown command " << from << ". Did you mean FROM?\n"; return false; }
+
+    // Grab the table name
+    const std::string table_name = args[2];
+    
+    // If the table does NOT exist, alert the user and return false
+    if (!this->database->tableExists(table_name)) { std::cout << "-- !Failed to update table " << table_name << " because it does not exist.\n"; return false; }
+
+    // Get the 'WHERE' keyword
+    const std::string where = _toUpper(args[3]);
+    if (where != "WHERE") { std::cout << "-- Unknown command " << where << ". Did you mean WHERE?\n"; return false; }
+
+    // Grab the name of the column we want to search
+    const std::string column_to_search = args[4];
+
+    // Grab the operator we want to preform the search on
+    const std::string opr = args[5];
+
+    // If this is NOT a valid operator, return false
+    if (!_isValidOperator(opr)) { std::cout << "-- !Failed to delete from table " << table_name << " because the second operator " << opr << " is not supported. Did you mean '='?\n"; return false; }
+
+    // Grab the value we want to search for
+    std::string value_to_search = args[6];
+
+    // If the first and last characer are single or doubles quotes, erase and the first and last character
+    if (value_to_search.size() > 2 && 
+        ((value_to_search[0] == 39 && value_to_search.back() == 39) || (value_to_search[0] == 34 && value_to_search.back() == 34))
+    ) 
+    {
+        value_to_search = value_to_search.substr(1, value_to_search.size() - 2);
+    }
+
+    // Fetch the table ptr
+    std::shared_ptr<Table> table = this->database->getTable(table_name);
+
+    return table->deleteFromTable(column_to_search, value_to_search, opr);
 }

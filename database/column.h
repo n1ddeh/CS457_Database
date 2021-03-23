@@ -19,11 +19,16 @@ public:
     Column(std::string, std::vector<std::string>, size_t);
 
     bool insertElement(T);
+    bool deleteElement(const size_t);
 
     std::string getName() {return this->column_name;}
     unsigned int getDataType() {return this->data_type;}
     std::vector<T> getElements() {return this->elements;}
     size_t getCharMax() {return this->CHAR_MAX;}
+
+
+    std::unordered_set<size_t> filterElements(const std::string& op, T val);
+    size_t updateElementsOnIndex(const std::unordered_set<size_t>&, const T&);
 };
 
 #endif // COLUMN_H_
