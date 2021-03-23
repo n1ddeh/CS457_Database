@@ -66,13 +66,14 @@ void SQL::SQL_CLI()
     // The user input
     std::string input;
 
+        // Replace multiple tabs and spaces with a single space
+    std::regex regx("[ \t]+");
+
     // File input
     if (!this->arguments.empty())
     {
         input = this->arguments.front();
 
-        // Replace multiple tabs and spaces with a single space
-        std::regex regx("[ \t]+");
         input = std::regex_replace(input, regx, std::string(" "));
 
         // Trim spaces from beginning and end
@@ -120,6 +121,9 @@ void SQL::SQL_CLI()
 
         input.pop_back();
     }
+
+    // Clean up input from unecessary spaces and tabs
+    input = std::regex_replace(input, regx, std::string(" "));
 
     // Check if the user input has balanced parenthsis, if not issue some error
     if (!parenthesisBalance(input))

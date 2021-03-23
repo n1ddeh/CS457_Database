@@ -285,7 +285,7 @@ long int Table::columnIndexFromName(const std::string& column_name)
     long int index = 0;
     for (auto& col_data : this->column_meta_data) {
         std::string name = std::get<0>(this->column_meta_data[index]);
-        if (name == column_name) return index;
+        if (_toUpper(name) == _toUpper(column_name)) return index;
         index++;
     }
     return (long int) -1;
@@ -623,7 +623,7 @@ bool Table::selectColumns(
 bool Table::columnExists(const std::string& column_name)
 {
     for (auto& col : this->column_meta_data) {
-        if (column_name == std::get<0>(col)) return true;
+        if (_toUpper(column_name) == _toUpper(std::get<0>(col))) return true;
     }
 
     return false;
