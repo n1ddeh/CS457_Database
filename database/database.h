@@ -1,3 +1,9 @@
+/**
+ * File: database.h
+ * Author: Mark Minkoff
+ * Functionality: Function declerations for file column.cpp
+ * 
+ * */
 #ifndef DATABASE_H_
 #define DATABASE_H_
 

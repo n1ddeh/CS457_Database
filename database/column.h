@@ -14,6 +14,7 @@ template <class T>
 class Column
 {
 private:
+
     std::string column_name;        // Column Name
     unsigned int data_type;         // type of elements it stores
     std::vector<T> elements;        // Container for elements

@@ -1,3 +1,10 @@
+/**
+ * File: column.cpp
+ * Author: Mark Minkoff
+ * Functionality: Function definitions for file column.h
+ * 
+ * */
+
 #include "column.h"
 
 template<> Column<int>::Column(std::string column, std::vector<int> elements)

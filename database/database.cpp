@@ -1,3 +1,10 @@
+/**
+ * File: database.cpp
+ * Author: Mark Minkoff
+ * Functionality: Function definitions for file database.h
+ * 
+ * */
+
 #include "database.h"
 
 Database::Database(const std::string& database) : database_name(database) {}

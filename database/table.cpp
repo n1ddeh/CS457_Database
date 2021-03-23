@@ -1,3 +1,10 @@
+/**
+ * File: table.cpp
+ * Author: Mark Minkoff
+ * Functionality: Function definitions for file table.cpp
+ * 
+ * */
+
 #include "table.h"
 
 // Constructor

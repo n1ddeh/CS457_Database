@@ -1,3 +1,11 @@
+/**
+ * File: include.h
+ * Author: Mark Minkoff
+ * Functionality: Instantiates useful standard libaries and helper functions
+ * This file is included in all other files.
+ * 
+ * */
+
 #ifndef INCLUDE_H_
 #define INCLUDE_H_
 

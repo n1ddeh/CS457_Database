@@ -1,3 +1,10 @@
+/**
+ * File: table.h
+ * Author: Mark Minkoff
+ * Functionality: Function declarations for file table.cpp
+ * 
+ * */
+
 #ifndef TABLE_H_
 #define TABLE_H_
 
