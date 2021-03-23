@@ -602,48 +602,59 @@ bool SQL::selectTable(const std::vector<std::string>& args)
 {
     const unsigned int argn = args.size();
 
-    std::string command = _toUpper(args[0]);
-    std::string select_type = _toUpper(args[1]);
-    std::string from = _toUpper(args[2]);
-    std::string table_name = args[3];
+    if (argn < 4) { std::cout << "-- !Invalid number of arguments for command SELECT\n"; return 0; }
 
+    const std::string command = _toUpper(args[0]);
+    if (command != "SELECT") { std::cout << "-- !Programmer error in SQL::selectTable.\n";  return false; }
 
-    if (command != "SELECT")
+    std::string table_name;
+
+    if (args[1] == "*")
     {
-        std::cout << "-- !Programmer error in SQL::selectTable. Contact admin :(\n";
-        return false;
+        std::string from = _toUpper(args[2]);
+        if (from != "FROM") { std::cout << "-- !Unknown argument from command SELECT *: " << from << ". Did you mean FROM?\n"; return false; }
+        if (argn > 4) { errorUnknownArguments(args, command, 4); return false; }
+        table_name = args[3];
+        if (!dbSelected()) { std::cout << "-- !Failed to query table " << table_name << " because the database is not selected.\n"; return false; }
+        if (!this->database->tableExists(table_name)) { std::cout << "-- !Failed to query table " << table_name << " because it does not exist.\n"; return false; }
+        return this->selectAllFromTable(table_name);
+    }
+    
+    std::vector<std::string> columns_to_search;
+
+    size_t index = 1;
+    while (index < argn - 1 && _toUpper(args[index]) != "FROM")
+    {
+        columns_to_search.emplace_back(args[index]);
+        if (columns_to_search[index - 1].back() == ',')  {
+            columns_to_search[index - 1].pop_back();
+        }
+        ++index;
     }
 
-    if (from != "FROM")
-    {
-        std::cout << "-- !Unknown argument from command SELECT: " << from << ". Did you mean FROM?\n";
-    }
+    if (columns_to_search.empty()) { std::cout << "-- !Failed to query any tables. Did you for get the add column names after the SELECT statement?\n"; return false; }
 
-    if (argn > 4)
-    {
-        errorUnknownArguments(args, command, 4);
-        return false;
-    }
+    const std::string from = _toUpper(args[index++]);
+    if (from != "FROM") { std::cout << "-- Unknown command " << from << ". Did you mean FROM?\n"; return false; }
 
-    if (!dbSelected())
-    {
-        std::cout << "-- !Failed to query table " << table_name << " because the database is not selected.\n";
-    }
+    table_name = args[index++];
+    // If the table does NOT exist, alert the user and return false
+    if (!this->database->tableExists(table_name)) { std::cout << "-- !Failed to update table " << table_name << " because it does not exist.\n"; return false; }
 
-    if (!this->database->tableExists(table_name))
-    {
-        std::cout << "-- !Failed to query table " << table_name << " because it does not exist.\n";
-    }
+    const std::string where = _toUpper(args[index++]);
+    if (where != "WHERE") { std::cout << "--!Failed to query table " << table_name << ". Unknown argument " << where << ". Did you mean 'WHERE'?\n"; return false; }
 
-    if (select_type == "*") 
-    {
-        std::shared_ptr<Table> table = this->database->getTable(table_name);
-        return table->printAll();
-    }
-    else {
-        std::cout << "-- !Unknown argument from command SELECT: " << select_type <<  ". Did you mean '*' ?\n";
-        return false;
-    }
+    const std::string column_to_query = args[index++];
+    const std::string opr = args[index++];
+
+    // If this is NOT a valid operator, return false
+    if (!_isValidOperator(opr)) { std::cout << "-- !Failed to query tables because the operator " << opr << " is not supported. Did you mean '='?\n"; return false; }
+
+    const std::string value_to_query = args[index];
+
+    std::shared_ptr<Table> table = this->database->getTable(table_name);
+
+    return table->selectColumns(columns_to_search, column_to_query, value_to_query, opr);
 }
 
 bool SQL::selectAllFromTable(const std::string& table_name)

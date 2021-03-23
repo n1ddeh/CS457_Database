@@ -497,3 +497,127 @@ bool Table::deleteFromTable(const std::string& column_to_search, const std::stri
 
     return true; 
 }
+
+
+bool Table::selectColumns(
+        const std::vector<std::string>& columns,
+        const std::string& column_to_query,
+        const std::string& value_to_query, 
+        const std::string& opr
+    ) 
+{
+    std::vector<size_t> column_indicies;
+
+    // Ensure that each column exists in this table
+    for (auto col : columns)
+    {
+        column_indicies.emplace_back(columnIndexFromName(col));
+        if (!this->columnExists(col)) {
+            std::cout << "-- !Failed to query table " << this->table_name << " because column " << col << "does not exist.\n";
+            return false;
+        }
+    }
+
+    std::unordered_set<size_t> indicies_to_select;
+
+    long int query_column_index = columnIndexFromName(column_to_query);
+    if (query_column_index == (long int)-1) { std::cout << "-- !Failed to query from table " << this->table_name << " because column " << query_column_index << " does not exist.\n"; return false; }
+
+    auto variant_col = &(this->columns[query_column_index]);
+    if (auto col = std::get_if<std::shared_ptr<Column<int>>>(variant_col))
+    {
+        // Get a pointer to the column
+        std::shared_ptr<Column<int>> column = *col;
+
+        indicies_to_select = column->filterElements(opr, std::stoi(value_to_query));
+    }
+    else if (auto col = std::get_if<std::shared_ptr<Column<float>>>(variant_col))
+    {
+        // Get a pointer to the column
+        std::shared_ptr<Column<float>> column = *col;
+
+        indicies_to_select = column->filterElements(opr, std::stof(value_to_query));
+    }
+    else if (auto col = std::get_if<std::shared_ptr<Column<char>>>(variant_col))
+    {
+        // Get a pointer to the column
+        std::shared_ptr<Column<char>> column = *col;
+
+        indicies_to_select = column->filterElements(opr, value_to_query[0]);
+    }
+    else if (auto col = std::get_if<std::shared_ptr<Column<std::string>>>(variant_col))
+    {
+        // Get a pointer to the column
+        std::shared_ptr<Column<std::string>> column = *col;
+
+        indicies_to_select = column->filterElements(opr, value_to_query);
+    }
+
+    if (!indicies_to_select.empty()) 
+    {
+        // Print column meta data
+        std::cout << "-- ";
+        for (size_t index : column_indicies)
+        {
+            if (index <= this->columnCount())
+            {
+                std::cout << std::get<0>(this->column_meta_data[index]) << " " << std::get<1>(this->column_meta_data[index]);
+                std::cout << " | ";
+            }
+            
+        }
+        std::cout << "\n";
+
+        for (size_t row_index : indicies_to_select)
+        {
+            std::cout << "-- ";
+            for (size_t col_index : column_indicies)
+            {
+                if (auto col = std::get_if<std::shared_ptr<Column<int>>>(&(this->columns[col_index])))
+                {
+                    // Get a pointer to the column
+                    std::shared_ptr<Column<int>> column = *col;
+
+                    std::cout << column->getElements()[row_index];
+                    std::cout << " | ";
+                }
+                else if (auto col = std::get_if<std::shared_ptr<Column<float>>>(&(this->columns[col_index])))
+                {
+                    // Get a pointer to the column
+                    std::shared_ptr<Column<float>> column = *col;
+
+                    std::cout << column->getElements()[row_index];
+                    std::cout << " | ";
+                }
+                else if (auto col = std::get_if<std::shared_ptr<Column<char>>>(&(this->columns[col_index])))
+                {
+                    // Get a pointer to the column
+                    std::shared_ptr<Column<char>> column = *col;
+
+                    std::cout << column->getElements()[row_index];
+                    std::cout << " | ";
+                }
+                else if (auto col = std::get_if<std::shared_ptr<Column<std::string>>>(&(this->columns[col_index])))
+                {
+                    // Get a pointer to the column
+                    std::shared_ptr<Column<std::string>> column = *col;
+
+                    std::cout << column->getElements()[row_index];
+                    std::cout << " | ";
+                } 
+            }
+            std::cout << "\n";
+        }
+    }
+
+    return true;
+}
+
+bool Table::columnExists(const std::string& column_name)
+{
+    for (auto& col : this->column_meta_data) {
+        if (column_name == std::get<0>(col)) return true;
+    }
+
+    return false;
+}
