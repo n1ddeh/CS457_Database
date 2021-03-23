@@ -12,33 +12,82 @@ private:
     unsigned int column_count;                                         // Number of columns
     unsigned int row_count;                                            // number of rows
 
+    // Storage container for each column
     std::vector<std::variant<std::shared_ptr<Column<int>>, std::shared_ptr<Column<float>>, std::shared_ptr<Column<char>>, std::shared_ptr<Column<std::string>>>> columns;
 
 public:
-    Table(std::string table, std::vector<std::pair<std::string, std::string>> column_meta_data);
+    /** Standard Table Constructor 
+     * @param std::string table_name
+     * @param std::vector<std::pair<std::string, std::string>> column_meta_data
+    */
+    Table(
+        std::string table, 
+        std::vector<std::pair<std::string, std::string>> column_meta_data
+    );
+    /** Table Destructor */
     ~Table();
 
-    bool createIntColumn(std::string);
-    bool createFloatColumn(std::string);
-    bool createCharColumn(std::string);
-    bool createVarCharColumn(std::string, size_t);
+    // ---------------------------
+    // ---- Table Creation Functions
+    // ---------------------------
 
+    /** Creates an INT Column */
+    bool createIntColumn(std::string);
+
+    /** Creates a FLOAT Column */
+    bool createFloatColumn(std::string);
+
+    /** Creates a CHAR Column */
+    bool createCharColumn(std::string);
+
+    /** Creates a VarChar Column */
+    bool createVarCharColumn(std::string, size_t);
+    
+    // ---------------------------
+    // ---- Table Update Functions
+    // ---------------------------
+
+    /** Handels the UPDATE {{ table_name }} SET Command */
     bool updateColumnSet(const std::string&, const std::string&, const std::string&, const std::string&, const std::string&);
+
+    /** Handles the DELETE FROM {{ table_anme }} */
     bool deleteFromTable(const std::string&, const std::string&, const std::string&);
 
+    /** Handles the INSERT INTO {{ table_name }} VALUES(x, y, z, ...) Command */
     bool insertRow(const std::vector<std::string>&);
 
+    /**  Deletes a from the table based on index*/
     bool deleteRow(const size_t);
 
+    // ---------------------------
+    // ---- Table Selection Functions
+    // ---------------------------
+
+    /** Handles the SELECT {{ col1, col2, ... }} FROM {{ table_name }} WHERE command */
+    bool selectColumns(
+        const std::vector<std::string>& columns,
+        const std::string& column_to_query,
+        const std::string& value_to_query, 
+        const std::string& opr
+    );
+
+    /** Handles the SELECT * command */
     bool printAll();
 
+    // ---------------------------
+    // ---- Table Helper Functions
+    // ---------------------------
+
+    /** Returns an index to a column based on the name passed */
     long int columnIndexFromName(const std::string&);
 
-    
+    /** Checks if a column exists*/
+    bool columnExists(const std::string& column_name);
 
     // Getters
     std::string getTable() { return this->table_name; }
     unsigned int columnCount() { return this->column_count; }
+    
     // Setters
     void setTableName(const std::string& name) { this->table_name = name; }
     void incrementColumnCount() { this->column_count++; }
