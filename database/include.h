@@ -49,7 +49,8 @@ static auto _subVector(const std::vector<T>& vec, typename std::vector<T>::const
     return std::vector<T>(left, right);
 }
 
-// Rounds a floating point number by a set number of significant digits
+// Rounds a floating point number by a set number of significant digits (in theory)
+// Does not work on Ubuntu
 static float _roundFloat(float num, unsigned int sig_figs) 
 {
     float power_of_10 = std::pow(10, sig_figs);
@@ -59,8 +60,10 @@ static float _roundFloat(float num, unsigned int sig_figs)
     return res;
 }
 
+/** Trims all white spaces frm the right side of a string */
 static std::string _trimEnd(std::string source) 
 {
+    // Trim from the end iterator to the last iterator of a white space   
     source.erase(std::find_if(source.rbegin(), source.rend(), [](char c) 
     {
         return !std::isspace(static_cast<unsigned char>(c));
@@ -68,8 +71,10 @@ static std::string _trimEnd(std::string source)
     return source;
 }
 
+/** Trims all white spaces frm the left side of a string */
 static std::string _trimStart(std::string source) 
 {
+    // Trim from the start iterator to the last iterator of a white space
     source.erase(source.begin(), std::find_if(source.begin(), source.end(), [](char c) 
     {
         return !std::isspace(static_cast<unsigned char>(c));
@@ -77,13 +82,17 @@ static std::string _trimStart(std::string source)
     return source;
 }
 
+/** Trim white spaces from left and right side of a string */
 static std::string _trim(std::string source) 
 {
     return _trimEnd(_trimStart(source));
 }
 
+/** Checks if an operator is valid */
 static bool _isValidOperator(const std::string& op)
 {
+    // Return true if operator is valid
+    // otherwise, return false
     if (
         op == "="  || 
         op == "!=" || 
@@ -95,9 +104,12 @@ static bool _isValidOperator(const std::string& op)
     return false;
 }
 
+// Converts a character to uppercase
 static char _toUpper(const char& c)
 {
     char res = c;
+    // If a character is in range of 'a' to 'z' in ASCII
+    // convert to lowercase
     if (res >= 'a' && res <= 'z') {
         res = res - 32;
     }
