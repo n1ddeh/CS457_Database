@@ -9,7 +9,6 @@
 #ifndef INCLUDE_H_
 #define INCLUDE_H_
 
-// STL FTW
 #include <algorithm>
 #include <cmath>
 #include <ctype.h>
@@ -29,6 +28,8 @@
 #include <unordered_set>
 #include <variant>
 #include <vector>
+
+namespace fs = std::filesystem;
 
 // Converts a string to upper case
 static std::string _toUpper(std::string str)
@@ -122,6 +123,44 @@ static char _toUpper(const char& c)
         res = res - 32;
     }
     return res;
+}
+
+/**  * Split a string by a delimiter and return a vector of strings
+ * @param string The string being split
+ * @param char The delimiter to split by
+ * @return vector<string> The split string */
+static std::vector<std::string> _split(const std::string& s, char delimiter)
+{
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(s);
+    while (std::getline(tokenStream, token, delimiter))
+    {
+        tokens.push_back(token);
+    }
+    return tokens;
+}
+
+/**  * Check if a parenthesis are balanced in a string. 
+ *  ! Credit goes to chammika at leetcode.com
+ * * https://leetcode.com/problems/valid-parentheses/discuss/9252/2ms-C%2B%2B-sloution
+ * @param string The string being split
+ * @return bool */
+static bool _isBalancedParenthesis(std::string s)
+{
+    std::stack<char> p;
+    for (char& c : s) {
+        switch (c) {
+            case '(': 
+            case '{': 
+            case '[': p.push(c); break;
+            case ')': if (p.empty() || p.top()!='(') return false; else p.pop(); break;
+            case '}': if (p.empty() || p.top()!='{') return false; else p.pop(); break;
+            case ']': if (p.empty() || p.top()!='[') return false; else p.pop(); break;
+            default: ; 
+        }
+    }
+    return p.empty();
 }
 
 #endif // INCLUDE_H_

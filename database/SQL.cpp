@@ -126,7 +126,7 @@ void SQL::SQL_CLI()
     input = std::regex_replace(input, regx, std::string(" "));
 
     // Check if the user input has balanced parenthsis, if not issue some error
-    if (!parenthesisBalance(input))
+    if (!_isBalancedParenthesis(input))
     {
         std::cout << "-- !Parenthsis are not balanced in input: " << input << "\n";
         return SQL_CLI();
@@ -139,7 +139,7 @@ void SQL::SQL_CLI()
     }
 
     // Split the user input with a space delimeter
-    std::vector<std::string> args = SQL::split(input, ' ');
+    std::vector<std::string> args = _split(input, ' ');
 
     HANDLE_CMD(args);
 
@@ -185,10 +185,17 @@ bool SQL::createDatabase(const std::vector<std::string>& args)
         std::cout << "-- !Failed to create database " << database_name << " because it already exists." << std::endl;
         return false;
     }
-    try
-    {
+    try {
+        // Generate path for database to live
+        fs::path p = fs::current_path();
+        p += "/storage/"; p += database_name;
+
         // Crate the database and insert into the unordered map of databases
-        this->databases.insert(std::make_pair(database_name, std::make_shared<Database>(database_name)));
+        this->databases.insert(std::make_pair(database_name, std::make_shared<Database>(database_name, p)));
+
+        // Create the database directory
+        fs::create_directories(p);
+
         incrementDatabaseCount();
     }
     catch(const std::exception& e)
@@ -257,11 +264,25 @@ bool SQL::createTable(const std::vector<std::string>& args)
         return false;
     }
     
-
     if (!dbSelected())
     {
         std::cout << "-- !Failed to create table " << table_name << " because no database is selected.\n";
         return false;
+    }
+
+    // Find first instance of character ( in table_name
+    size_t found = table_name.find_first_of('(');
+
+    // If character ( is found, rearange arguments
+    if (found != std::string::npos) {
+        // Get the first parameter
+        std::string first_param = table_name.substr(found, std::string::npos);
+
+        // Erase the first parameter from table_name
+        const_cast<std::vector<std::string>&>(args)[2].erase(args[2].begin() + found, args[2].end());
+
+        // Insert the first parameter after table_name in the vector
+        const_cast<std::vector<std::string>&>(args).insert(args.begin() + 3, first_param);
     }
 
     if (this->database->tableExists(table_name))
@@ -466,18 +487,6 @@ unsigned int SQL::cmdId(const std::string& cmd)
     return this->commands.at(cmd);
 }
 
-std::vector<std::string> SQL::split(const std::string& s, char delimiter) 
-{
-    std::vector<std::string> tokens;
-    std::string token;
-    std::istringstream tokenStream(s);
-    while (std::getline(tokenStream, token, delimiter))
-    {
-        tokens.push_back(token);
-    }
-    return tokens;
-}
-
 void SQL::errorUnknownArguments(const std::vector<std::string>& args, const std::string& cmd, unsigned int index)
 {
     unsigned int argn = args.size();
@@ -585,23 +594,6 @@ std::vector<std::pair<std::string, std::string>> SQL::parseTableColumns(std::vec
     return res;
 }
 
-bool SQL::parenthesisBalance(std::string s)
-{
-    std::stack<char> p;
-        for (char& c : s) {
-            switch (c) {
-                case '(': 
-                case '{': 
-                case '[': p.push(c); break;
-                case ')': if (p.empty() || p.top()!='(') return false; else p.pop(); break;
-                case '}': if (p.empty() || p.top()!='{') return false; else p.pop(); break;
-                case ']': if (p.empty() || p.top()!='[') return false; else p.pop(); break;
-                default: ; 
-            }
-        }
-        return p.empty();
-}
-
 bool SQL::selectTable(const std::vector<std::string>& args)
 {
     const unsigned int argn = args.size();
@@ -617,11 +609,15 @@ bool SQL::selectTable(const std::vector<std::string>& args)
     {
         std::string from = _toUpper(args[2]);
         if (from != "FROM") { std::cout << "-- !Unknown argument from command SELECT *: " << from << ". Did you mean FROM?\n"; return false; }
-        if (argn > 4) { errorUnknownArguments(args, command, 4); return false; }
-        table_name = args[3];
-        if (!dbSelected()) { std::cout << "-- !Failed to query table " << table_name << " because the database is not selected.\n"; return false; }
-        if (!this->database->tableExists(table_name)) { std::cout << "-- !Failed to query table " << table_name << " because it does not exist.\n"; return false; }
-        return this->selectAllFromTable(table_name);
+
+        if (argn == 4) {
+            table_name = args[3];
+
+            // Handle the SELECT * FROM {{ table_name }}; command
+            return this->selectAllFromTable(table_name);
+        }
+        
+        return this->selectAllQuery(args);
     }
     
     std::vector<std::string> columns_to_search;
@@ -659,6 +655,59 @@ bool SQL::selectTable(const std::vector<std::string>& args)
     std::shared_ptr<Table> table = this->database->getTable(table_name);
 
     return table->selectColumns(columns_to_search, column_to_query, value_to_query, opr);
+}
+
+bool SQL::selectAllQuery(const std::vector<std::string>& args)
+{
+    const std::string select = _toUpper(args[0]);
+    const std::string all = _toUpper(args[1]);
+    const std::string from = _toUpper(args[2]);
+
+    // Ensure we are handeling the correct arguments
+    if (select != "SELECT" || all != "*" || from != "FROM") {
+        std::cout << "-- !Programmer error in SQL::selectAllQuery.\n";  return false;
+    }
+
+    // Parse all words between 'from' and ('on' or 'where')
+    std::vector<std::string> table_clause;
+    size_t index = 3;
+    while (index < args.size() && (_toUpper(args[index]) != "ON" && _toUpper(args[index]) != "WHERE")) {
+        table_clause.emplace_back(args[index++]);
+    }
+
+    if (table_clause.size() < 4 || table_clause.size() == 5) { std::cout << "== !Incorrect table clause for SELECT * FROM\n"; return false; }
+
+    if (table_clause[1].back() == ',') table_clause[1].pop_back();
+
+    // Initilize table_name table_nickname containers
+    std::pair<std::string, std::string> table_1 = std::make_pair(table_clause[0], table_clause[1]);
+    std::pair<std::string, std::string> table_2 = std::make_pair(table_clause[table_clause.size() - 2], table_clause[table_clause.size() - 1]);
+
+    // Set the selection parameters
+    short int join = 0;
+    bool left = true, right = false, inner = true;
+
+    index = 2;
+    if (_toUpper(table_clause[index]) == "RIGHT") { left = false; right = true; }
+    else if (_toUpper(table_clause[index] == "FULL")) { right = true; }
+    if (_toUpper(table_clause[index]) == "OUTER" || _toUpper(table_clause[index + 1]) == "OUTER") { inner = false; }
+
+    // Get the index of the 'WHERE' or 'ON' keyword
+    index = 0;
+    while (index < args.size() && _toUpper(args[index]) != "ON" && _toUpper(args[index]) != "WHERE") ++index;
+    if (index >= args.size() - 1) { std::cout << "-- !Query failed. Missing 'WHERE' or 'ON' token\n"; return false; }
+
+    // Collect the query statement
+    std::vector<std::string> query_statement;
+    while (index < args.size()) query_statement.emplace_back(args[index++]);
+
+    return this->database->queryTables(
+        table_1, 
+        table_2,
+        std::make_pair(left, right),
+        inner,
+        query_statement
+    );
 }
 
 bool SQL::selectAllFromTable(const std::string& table_name)

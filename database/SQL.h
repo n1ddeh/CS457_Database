@@ -60,6 +60,7 @@ public:
     /**  Outputs data from a table  */
     bool selectTable(const std::vector<std::string>& args);
     bool selectAllFromTable(const std::string& table_name);
+    bool selectAllQuery(const std::vector<std::string>& args);
 
     /**  Change a table in some way  */
     bool alterTable(const std::vector<std::string>& args);
@@ -103,19 +104,6 @@ public:
     void decrementDatabaseCount() { this->database_count--; }
     void setDatabaseCount(unsigned int cnt) { this->database_count = cnt; }
 
-    /**  * Split a string by a delimiter and return a vector of strings
-     * @param string The string being split
-     * @param char The delimiter to split by
-     * @return vector<string> The split string */
-    static std::vector<std::string> split(const std::string& s, char delimiter);
-
-    /**  * Check if a parenthesis are balanced in a string. 
-     *  ! Credit goes to chammika at leetcode.com
-     * * https://leetcode.com/problems/valid-parentheses/discuss/9252/2ms-C%2B%2B-sloution
-     * @param string The string being split
-     * @return bool */
-    bool parenthesisBalance(std::string s);
-
     void errorUnknownArguments(const std::vector<std::string>& args, const std::string& cmd, unsigned int index = 0);
 
 private:
@@ -126,6 +114,5 @@ private:
     unsigned int database_count;                                            // The number of stored databases
     std::queue<std::string> arguments;
 };
-
 
 #endif

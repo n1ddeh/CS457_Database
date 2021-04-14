@@ -8,8 +8,8 @@
 #include "table.h"
 
 // Constructor
-Table::Table(std::string table, std::vector<std::pair<std::string, std::string>> column_meta_data) : 
-    table_name(table), column_count(0), column_meta_data(column_meta_data) 
+Table::Table(std::string table, std::vector<std::pair<std::string, std::string>> column_meta_data, fs::path path) : 
+    table_name(table), column_count(0), column_meta_data(column_meta_data), path(path)
     {
         for (auto& col: column_meta_data)
         {
@@ -139,11 +139,15 @@ bool Table::insertRow(const std::vector<std::string>& row)
         return false;
     }
 
+    // Open the table file and set pointer to end of the file
+    std::ofstream table_file(this->path, std::ofstream::out | std::ofstream::app);
+
     /*  For every variable in the row, check if
         the variable can be converted to the type
         required by the column. **/
     for (auto& var : row)
     {
+        table_file << var << ',';
         if (auto col = std::get_if<std::shared_ptr<Column<int>>>(&(this->columns[col_index])))              // INT Type   
         {
             // Get a pointer to the column
@@ -209,13 +213,18 @@ bool Table::insertRow(const std::vector<std::string>& row)
             // Insert value into column
             column->insertElement(var);
         }
-        else 
-        {
+        else {
             std::cout << "-- Programmer error in Table::insertRow\n";
         }
         ++col_index;
     }
-    
+    // Insert new line
+    table_file << '\n';
+
+    // Close the file
+    table_file.close();
+
+    // Increment row count
     this->row_count++;
 
     return true;
@@ -627,4 +636,160 @@ bool Table::columnExists(const std::string& column_name)
     }
 
     return false;
+}
+
+size_t Table::getColumnType(const std::string& column_name)
+{
+    size_t column_index = this->columnIndexFromName(column_name);
+    if (column_index == -1 ) return -1;
+
+    if (auto col = std::get_if<std::shared_ptr<Column<int>>>(&(this->columns[column_index])))
+    {
+        // Get a pointer to the column
+        std::shared_ptr<Column<int>> column = *col;
+
+        // Return the data type
+        return column->getDataType();
+    }
+    else if (auto col = std::get_if<std::shared_ptr<Column<float>>>(&(this->columns[column_index])))
+    {
+        // Get a pointer to the column
+        std::shared_ptr<Column<float>> column = *col;
+
+        // Return the data type
+        return column->getDataType();
+    }
+    else if (auto col = std::get_if<std::shared_ptr<Column<char>>>(&(this->columns[column_index])))
+    {
+        // Get a pointer to the column
+        std::shared_ptr<Column<char>> column = *col;
+
+        // Return the data type
+        return column->getDataType();
+    }
+    else if (auto col = std::get_if<std::shared_ptr<Column<std::string>>>(&(this->columns[column_index])))
+    {
+        // Get a pointer to the column
+        std::shared_ptr<Column<std::string>> column = *col;
+
+        // Return the data type
+        return column->getDataType();
+    }
+    return -1;
+}
+
+std::shared_ptr<Column<int>> Table::selectColumnInt(const std::string& column_name) 
+{
+    std::shared_ptr<Column<int>> column;
+
+    size_t index = this->columnIndexFromName(column_name);
+
+    if (index == -1 || this->getColumnType(column_name) != (size_t)0) {
+        return column;
+    }
+
+    if (auto col = std::get_if<std::shared_ptr<Column<int>>>(&(this->columns[index])))
+    {
+        column = *col;
+    }
+
+    return column;
+}
+                                                                                                                                                                                                                                                                                                                                                                                                                                             
+std::shared_ptr<Column<float>> Table::selectColumnFloat(const std::string& column_name)
+{
+    std::shared_ptr<Column<float>> column;
+
+    size_t index = this->columnIndexFromName(column_name);
+
+    if (index == -1 || this->getColumnType(column_name) != (size_t)1) return column;
+
+    if (auto col = std::get_if<std::shared_ptr<Column<float>>>(&(this->columns[index])))
+    {
+        column = *col;
+    }
+
+    return column;
+}
+
+std::shared_ptr<Column<char>> Table::selectColumnChar(const std::string& column_name)
+{
+    std::shared_ptr<Column<char>> column;
+
+    size_t index = this->columnIndexFromName(column_name);
+
+    if (index == -1 || this->getColumnType(column_name) != (size_t)2) return column;
+
+    if (auto col = std::get_if<std::shared_ptr<Column<char>>>(&(this->columns[index])))
+    {
+        column = *col;
+    }
+
+    return column;
+}
+
+std::shared_ptr<Column<std::string>> Table::selectColumnString(const std::string& column_name)
+{
+    std::shared_ptr<Column<std::string>> column;
+
+    size_t index = this->columnIndexFromName(column_name);
+
+    if (index == -1 || this->getColumnType(column_name) != (size_t)3) return column;
+
+    if (auto col = std::get_if<std::shared_ptr<Column<std::string>>>(&(this->columns[index])))
+    {
+        column = *col;
+    }
+
+    return column;
+}
+
+bool Table::printRow(const size_t row) {
+    if (row >= this->row_count) return false;
+
+    size_t counter = 0;
+    
+    try {
+        // Iterate over every column
+        for (size_t i = 0; i < this->column_count; ++i) {
+            if (auto col = std::get_if<std::shared_ptr<Column<int>>>(&(this->columns[i]))) {
+                // Get a pointer to the column
+                std::shared_ptr<Column<int>> column = *col;
+                
+                // Print the value
+                std::cout << column->getElements()[row];
+            }
+            else if (auto col = std::get_if<std::shared_ptr<Column<float>>>(&(this->columns[i]))) {
+                // Get a pointer to the column
+                std::shared_ptr<Column<float>> column = *col;
+                
+                // Print the value
+                std::cout << column->getElements()[row];
+            }
+            else if (auto col = std::get_if<std::shared_ptr<Column<char>>>(&(this->columns[i]))) {
+                // Get a pointer to the column
+                std::shared_ptr<Column<char>> column = *col;
+                
+                // Print the value
+                std::cout << column->getElements()[row];
+            }
+            else if (auto col = std::get_if<std::shared_ptr<Column<std::string>>>(&(this->columns[i]))) {
+                // Get a pointer to the column
+                std::shared_ptr<Column<std::string>> column = *col;
+                
+                // Print the value
+                std::cout << column->getElements()[row];
+            }
+
+            if (counter != (this->columnCount() - 1)) std::cout << " | ";
+            
+        }
+    
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << "\n";
+        return false;
+    }
+    return true;
 }

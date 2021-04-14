@@ -18,6 +18,7 @@ private:
     std::vector<std::pair<std::string, std::string>> column_meta_data; // Vector of pairs of column_name and column types
     unsigned int column_count;                                         // Number of columns
     unsigned int row_count;                                            // number of rows
+    fs::path path;                                         // The path to the table file
 
     // Storage container for each column
     std::vector<std::variant<std::shared_ptr<Column<int>>, std::shared_ptr<Column<float>>, std::shared_ptr<Column<char>>, std::shared_ptr<Column<std::string>>>> columns;
@@ -29,7 +30,8 @@ public:
     */
     Table(
         std::string table, 
-        std::vector<std::pair<std::string, std::string>> column_meta_data
+        std::vector<std::pair<std::string, std::string>> column_meta_data,
+        fs::path path
     );
     /** Table Destructor */
     ~Table();
@@ -78,6 +80,11 @@ public:
         const std::string& opr
     );
 
+    std::shared_ptr<Column<int>> selectColumnInt(const std::string& column_name);
+    std::shared_ptr<Column<float>> selectColumnFloat(const std::string& column_name);
+    std::shared_ptr<Column<char>> selectColumnChar(const std::string& column_name);
+    std::shared_ptr<Column<std::string>> selectColumnString(const std::string& column_name);
+
     /** Handles the SELECT * command */
     bool printAll();
 
@@ -91,9 +98,14 @@ public:
     /** Checks if a column exists*/
     bool columnExists(const std::string& column_name);
 
+    bool printRow(const size_t row);
+
     // Getters
     std::string getTable() { return this->table_name; }
     unsigned int columnCount() { return this->column_count; }
+    size_t getColumnType(const std::string&);
+    const fs::path getPath() { return this->path; }
+    std::vector<std::pair<std::string, std::string>> getMetaData() { return this->column_meta_data; }
     
     // Setters
     void setTableName(const std::string& name) { this->table_name = name; }
