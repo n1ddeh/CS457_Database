@@ -3,7 +3,7 @@
 
 int main(int argc, char* argv[])
 {
-    std::cout << "CS457 PA2\n\n";
+    std::cout << "CS457 PA3\n\n";
 
     if (argc > 1) {
         std::string filePath = argv[1];
@@ -13,6 +13,5 @@ int main(int argc, char* argv[])
         std::unique_ptr<SQL> client = std::make_unique<SQL>();
     }
     
-
     return 0;
 }

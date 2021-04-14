@@ -61,25 +61,25 @@ public:
     void setDatabaseName(std::string db) { this->database_name = db; }
     std::shared_ptr<Table> getTable(const std::string& table_name);
 
-    std::unordered_map<int, std::vector<size_t>> queryColumnsInt(
+    std::unordered_map<size_t, std::vector<size_t>> queryColumnsInt(
         std::shared_ptr<Column<int>> col1, 
         std::shared_ptr<Column<int>> col2, 
         const std::string& op
     );
 
-    std::unordered_map<float, std::vector<size_t>> queryColumnsFloat(
+    std::unordered_map<size_t, std::vector<size_t>> queryColumnsFloat(
         std::shared_ptr<Column<float>> col1, 
         std::shared_ptr<Column<float>> col2, 
         const std::string& op
     );
 
-    std::unordered_map<char, std::vector<size_t>> queryColumnsChar(
+    std::unordered_map<size_t, std::vector<size_t>> queryColumnsChar(
         std::shared_ptr<Column<char>> col1, 
         std::shared_ptr<Column<char>> col2, 
         const std::string& op
     );
     
-    std::unordered_map<std::string, std::vector<size_t>> queryColumnsString(
+    std::unordered_map<size_t, std::vector<size_t>> queryColumnsString(
         std::shared_ptr<Column<std::string>> col1, 
         std::shared_ptr<Column<std::string>> col2, 
         const std::string& op
@@ -88,8 +88,8 @@ public:
     bool printQuery(
         std::shared_ptr<Table> table1, 
         std::shared_ptr<Table> table2,
-        std::unordered_map<int, std::vector<size_t>> map1,
-        std::unordered_map<int, std::vector<size_t>> map2,
+        std::unordered_map<size_t, std::vector<size_t>> map1,
+        std::unordered_map<size_t, std::vector<size_t>> map2,
         bool inner
     );
 };

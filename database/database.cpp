@@ -165,8 +165,8 @@ bool Database::queryTables (
         auto column1 = table1_ptr->selectColumnInt(table_select1[1]);
         auto column2 = table2_ptr->selectColumnInt(table_select2[1]);
 
-        std::unordered_map<int, std::vector<size_t>> mapping1;
-        std::unordered_map<int, std::vector<size_t>> mapping2;
+        std::unordered_map<size_t, std::vector<size_t>> mapping1;
+        std::unordered_map<size_t, std::vector<size_t>> mapping2;
 
         // Right Join
         if (!lr_val.first && lr_val.second) 
@@ -193,8 +193,8 @@ bool Database::queryTables (
         auto column1 = table1_ptr->selectColumnFloat(table_select1[1]);
         auto column2 = table2_ptr->selectColumnFloat(table_select2[1]);
 
-        std::unordered_map<float, std::vector<size_t>> mapping1;
-        std::unordered_map<float, std::vector<size_t>> mapping2;
+        std::unordered_map<size_t, std::vector<size_t>> mapping1;
+        std::unordered_map<size_t, std::vector<size_t>> mapping2;
 
         // Right Join
         if (!lr_val.first && lr_val.second) 
@@ -220,8 +220,8 @@ bool Database::queryTables (
         auto column1 = table1_ptr->selectColumnChar(table_select1[1]);
         auto column2 = table2_ptr->selectColumnChar(table_select2[1]);
 
-        std::unordered_map<char, std::vector<size_t>> mapping1;
-        std::unordered_map<char, std::vector<size_t>> mapping2;
+        std::unordered_map<size_t, std::vector<size_t>> mapping1;
+        std::unordered_map<size_t, std::vector<size_t>> mapping2;
 
         // Right Join
         if (!lr_val.first && lr_val.second) 
@@ -247,8 +247,8 @@ bool Database::queryTables (
         auto column1 = table1_ptr->selectColumnString(table_select1[1]);
         auto column2 = table2_ptr->selectColumnString(table_select2[1]);
 
-        std::unordered_map<std::string, std::vector<size_t>> mapping1;
-        std::unordered_map<std::string, std::vector<size_t>> mapping2;
+        std::unordered_map<size_t, std::vector<size_t>> mapping1;
+        std::unordered_map<size_t, std::vector<size_t>> mapping2;
 
         // Right Join
         if (!lr_val.first && lr_val.second) 
@@ -278,14 +278,14 @@ bool Database::queryTables (
     return true;
 }
 
-std::unordered_map<int, std::vector<size_t>> Database::queryColumnsInt(
+std::unordered_map<size_t, std::vector<size_t>> Database::queryColumnsInt(
     std::shared_ptr<Column<int>> col1, 
     std::shared_ptr<Column<int>> col2, 
     const std::string& op
 )
 {   
     // Initialize resulting container
-    std::unordered_map<int, std::vector<size_t>> res;
+    std::unordered_map<size_t, std::vector<size_t>> res;
 
     // If operator is not valid or columns are null or left and right flags are both false, return an empty result.
     if(!_isValidOperator(op) || !col1 || !col2) return res;
@@ -411,14 +411,14 @@ std::unordered_map<int, std::vector<size_t>> Database::queryColumnsInt(
     return res;
 }
 
-std::unordered_map<float, std::vector<size_t>> Database::queryColumnsFloat(
+std::unordered_map<size_t, std::vector<size_t>> Database::queryColumnsFloat(
     std::shared_ptr<Column<float>> col1, 
     std::shared_ptr<Column<float>> col2, 
     const std::string& op
 )
 {
     // Initialize resulting container
-    std::unordered_map<float, std::vector<size_t>> res;
+    std::unordered_map<size_t, std::vector<size_t>> res;
 
     std::vector<float> elements1 = col1->getElements();
     std::vector<float> elements2 = col2->getElements();
@@ -544,14 +544,14 @@ std::unordered_map<float, std::vector<size_t>> Database::queryColumnsFloat(
     return res;
 }
 
-std::unordered_map<char, std::vector<size_t>> Database::queryColumnsChar(
+std::unordered_map<size_t, std::vector<size_t>> Database::queryColumnsChar(
     std::shared_ptr<Column<char>> col1, 
     std::shared_ptr<Column<char>> col2, 
     const std::string& op
 )
 {
     // Initialize resulting container
-    std::unordered_map<char, std::vector<size_t>> res;
+    std::unordered_map<size_t, std::vector<size_t>> res;
 
     std::vector<char> elements1 = col1->getElements();
     std::vector<char> elements2 = col2->getElements();
@@ -677,7 +677,7 @@ std::unordered_map<char, std::vector<size_t>> Database::queryColumnsChar(
     return res;
 }
 
-std::unordered_map<std::string, std::vector<size_t>> Database::queryColumnsString(
+std::unordered_map<size_t, std::vector<size_t>> Database::queryColumnsString(
     std::shared_ptr<Column<std::string>> col1, 
     std::shared_ptr<Column<std::string>> col2, 
     const std::string& op
@@ -687,98 +687,122 @@ std::unordered_map<std::string, std::vector<size_t>> Database::queryColumnsStrin
     std::vector<std::string> elements2 = col2->getElements();
 
     // Initialize resulting container
-    std::unordered_map<std::string, std::vector<size_t>> res;
+    std::unordered_map<size_t, std::vector<size_t>> res;
 
     // If operator is not valid or columns are null or left and right flags are both false, return an empty result.
     if(!_isValidOperator(op) || !col1 || !col2) return res;
 
     if (op == "=") { // Equality operator
-        // If an element from the first column has NOT been mapped, map it.
-        if (!res.count(i)) res.insert( std::make_pair(i, std::vector<size_t>()) );
-
-        // Iterate over every element in the second column.
-        for (size_t j = 0; j < elements2.size(); j++) 
+        // Iterate over every element in the first column.
+        for (size_t i = 0; i < elements1.size(); ++i) 
         {
-            // Perform check 
-            if (elements1[i].compare(elements2[j]) == 0)
+            // If an element from the first column has NOT been mapped, map it.
+            if (!res.count(i)) res.insert( std::make_pair(i, std::vector<size_t>()) );
+
+            // Iterate over every element in the second column.
+            for (size_t j = 0; j < elements2.size(); j++) 
             {
-                // Store matching row
-                res.at(i).emplace_back(j);
+                // Perform check 
+                if (elements1[i].compare(elements2[j]) == 0)
+                {
+                    // Store matching row
+                    res.at(i).emplace_back(j);
+                }
             }
         }
     }
     else if (op == "!=") { // Inequality operator
-        // If an element from the first column has NOT been mapped, map it.
-        if (!res.count(i)) res.insert( std::make_pair(i, std::vector<size_t>()) );
-
-        // Iterate over every element in the second column.
-        for (size_t j = 0; j < elements2.size(); j++) 
+        // Iterate over every element in the first column.
+        for (size_t i = 0; i < elements1.size(); ++i) 
         {
-            // Perform check
-            if (elements1[i].compare(elements2[j]) != 0)
+            // If an element from the first column has NOT been mapped, map it.
+            if (!res.count(i)) res.insert( std::make_pair(i, std::vector<size_t>()) );
+
+            // Iterate over every element in the second column.
+            for (size_t j = 0; j < elements2.size(); j++) 
             {
-                // Store matching row
-                res.at(i).emplace_back(j);
+                // Perform check
+                if (elements1[i].compare(elements2[j]) != 0)
+                {
+                    // Store matching row
+                    res.at(i).emplace_back(j);
+                }
             }
         }
     }
     else if (op == ">") { // Greater operator
-        // If an element from the first column has NOT been mapped, map it.
-        if (!res.count(i)) res.insert( std::make_pair(i, std::vector<size_t>()) );
-
-        // Iterate over every element in the second column.
-        for (size_t j = 0; j < elements2.size(); j++) 
+        // Iterate over every element in the first column.
+        for (size_t i = 0; i < elements1.size(); ++i) 
         {
-            // Perform check
-            if (_toUpper(elements1[i]).compare(_toUpper(elements2[j])) > 0 ) 
+            // If an element from the first column has NOT been mapped, map it.
+            if (!res.count(i)) res.insert( std::make_pair(i, std::vector<size_t>()) );
+
+            // Iterate over every element in the second column.
+            for (size_t j = 0; j < elements2.size(); j++) 
             {
-                // Store matching row
-                res.at(i).emplace_back(j);
+                // Perform check
+                if (_toUpper(elements1[i]).compare(_toUpper(elements2[j])) > 0 ) 
+                {
+                    // Store matching row
+                    res.at(i).emplace_back(j);
+                }
             }
         }
     }
     else if (op == ">=") { // Greater or equal operator
-        // If an element from the first column has NOT been mapped, map it.
-        if (!res.count(i)) res.insert( std::make_pair(i, std::vector<size_t>()) );
-
-        // Iterate over every element in the second column.
-        for (size_t j = 0; j < elements2.size(); j++) 
+        // Iterate over every element in the first column.
+        for (size_t i = 0; i < elements1.size(); ++i) 
         {
-            // Perform check
-            if (_toUpper(elements1[i]).compare(_toUpper(elements2[j])) > 0 || elements1[i].compare(elements2[j]) == 0) 
+            // If an element from the first column has NOT been mapped, map it.
+            if (!res.count(i)) res.insert( std::make_pair(i, std::vector<size_t>()) );
+
+            // Iterate over every element in the second column.
+            for (size_t j = 0; j < elements2.size(); j++) 
             {
-                // Store matching row
-                res.at(i).emplace_back(j);
+                // Perform check
+                if (_toUpper(elements1[i]).compare(_toUpper(elements2[j])) > 0 || elements1[i].compare(elements2[j]) == 0) 
+                {
+                    // Store matching row
+                    res.at(i).emplace_back(j);
+                }
             }
         }
     }
     else if (op == "<") { // Less operator
-        // If an element from the first column has NOT been mapped, map it.
-        if (!res.count(i)) res.insert( std::make_pair(i, std::vector<size_t>()) );
-
-        // Iterate over every element in the second column.
-        for (size_t j = 0; j < elements2.size(); j++) 
+        // Iterate over every element in the first column.
+        for (size_t i = 0; i < elements1.size(); ++i) 
         {
-            // Perform check
-            if (_toUpper(elements1[i]).compare(_toUpper(elements2[j])) < 0 ) 
+            // If an element from the first column has NOT been mapped, map it.
+            if (!res.count(i)) res.insert( std::make_pair(i, std::vector<size_t>()) );
+
+            // Iterate over every element in the second column.
+            for (size_t j = 0; j < elements2.size(); j++) 
             {
-                // Store matching row
-                res.at(i).emplace_back(j);
+                // Perform check
+                if (_toUpper(elements1[i]).compare(_toUpper(elements2[j])) < 0 ) 
+                {
+                    // Store matching row
+                    res.at(i).emplace_back(j);
+                }
             }
         }
     }
     else if (op == "<=") { // Less or equal operator
-        // If an element from the first column has NOT been mapped, map it.
-        if (!res.count(i)) res.insert( std::make_pair(i, std::vector<size_t>()) );
-
-        // Iterate over every element in the second column.
-        for (size_t j = 0; j < elements2.size(); j++) 
+        // Iterate over every element in the first column.
+        for (size_t i = 0; i < elements1.size(); ++i) 
         {
-            // Perform check
-            if (_toUpper(elements1[i]).compare(_toUpper(elements2[j])) < 0 || elements1[i].compare(elements2[j]) == 0) 
+            // If an element from the first column has NOT been mapped, map it.
+            if (!res.count(i)) res.insert( std::make_pair(i, std::vector<size_t>()) );
+
+            // Iterate over every element in the second column.
+            for (size_t j = 0; j < elements2.size(); j++) 
             {
-                // Store matching row
-                res.at(i).emplace_back(j);
+                // Perform check
+                if (_toUpper(elements1[i]).compare(_toUpper(elements2[j])) < 0 || elements1[i].compare(elements2[j]) == 0) 
+                {
+                    // Store matching row
+                    res.at(i).emplace_back(j);
+                }
             }
         }
     }
@@ -786,12 +810,11 @@ std::unordered_map<std::string, std::vector<size_t>> Database::queryColumnsStrin
     return res;
 }
 
-
 bool Database::printQuery(
         std::shared_ptr<Table> table1, 
         std::shared_ptr<Table> table2,
-        std::unordered_map<int, std::vector<size_t>> map1,
-        std::unordered_map<int, std::vector<size_t>> map2,
+        std::unordered_map<size_t, std::vector<size_t>> map1,
+        std::unordered_map<size_t, std::vector<size_t>> map2,
         bool inner
     )
 {

@@ -283,6 +283,9 @@ bool SQL::createTable(const std::vector<std::string>& args)
 
         // Insert the first parameter after table_name in the vector
         const_cast<std::vector<std::string>&>(args).insert(args.begin() + 3, first_param);
+
+        // Update the table name
+        const_cast<std::string&>(table_name) = args[2];
     }
 
     if (this->database->tableExists(table_name))
