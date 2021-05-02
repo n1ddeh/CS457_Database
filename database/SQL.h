@@ -98,6 +98,8 @@ public:
     /** Handles the DELETE FROM {{ table_name }} command */
     bool deleteFromTable(const std::vector<std::string>& args);
 
+    bool beginTransaction(const std::vector<std::string>& args);
+
     // database_count getters/mutators
     unsigned int getDatabaseCount() { return this->database_count; }
     void incrementDatabaseCount() { this->database_count++; }

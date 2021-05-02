@@ -49,16 +49,18 @@ void SQL::initializeCommands()
     std::pair<std::string, unsigned int> cmd5("INSERT", 5);
     std::pair<std::string, unsigned int> cmd6("UPDATE", 6);
     std::pair<std::string, unsigned int> cmd7("DELETE", 7);
+    std::pair<std::string, unsigned int> cmd8("BEGIN TRANSACTION", 8);
 
     // Insert commands into unordered map
     this->commands.insert(cmd0);
     this->commands.insert(cmd1);
-    this->commands.insert(cmd2); 
+    this->commands.insert(cmd2);
     this->commands.insert(cmd3);
     this->commands.insert(cmd4);
     this->commands.insert(cmd5);
     this->commands.insert(cmd6);
     this->commands.insert(cmd7);
+    this->commands.insert(cmd8);
 }
 
 void SQL::SQL_CLI()
@@ -188,13 +190,16 @@ bool SQL::createDatabase(const std::vector<std::string>& args)
     try {
         // Generate path for database to live
         fs::path p = fs::current_path();
-        p += "/storage/"; p += database_name;
+        p += "/storage/"; p += database_name; p += "/";
 
-        // Crate the database and insert into the unordered map of databases
-        this->databases.insert(std::make_pair(database_name, std::make_shared<Database>(database_name, p)));
+        fs::path path_metadata = p;
+        path_metadata += "metadata.txt";
 
         // Create the database directory
         fs::create_directories(p);
+
+        // Crate the database and insert into the unordered map of databases
+        this->databases.insert(std::make_pair(database_name, std::make_shared<Database>(database_name, p, path_metadata)));
 
         incrementDatabaseCount();
     }
@@ -465,6 +470,10 @@ bool SQL::HANDLE_CMD(std::vector<std::string> args)
         else if (command_id == 7) // DELETE COMMAND HANDLER
         {
             return deleteFromTable(args);
+        }
+        else if (command_id == 8) // TRANSACTION COMMAND HANDLER
+        {
+            return beginTransaction(args);
         }
     }
     catch(const std::exception& e)
@@ -1064,4 +1073,30 @@ bool SQL::deleteFromTable(const std::vector<std::string>& args)
     std::shared_ptr<Table> table = this->database->getTable(table_name);
 
     return table->deleteFromTable(column_to_search, value_to_search, opr);
+}
+
+bool SQL::beginTransaction(const std::vector<std::string>& args)
+{
+    unsigned int n = args.size();
+    const std::string begin = _toUpper(args[0]);
+    const std::string transaction = _toUpper(args[1]);
+
+    if (begin != "BEGIN" || transaction != "TRANSACTION") {
+        std::cout << "Programmer error in beginTransaction - returning\n";
+        return false;
+    }
+
+    if (n > 2) {
+        errorUnknownArguments(args, "BEGIN TRANSACTION", 2);
+        return false;
+    }
+
+    if (!this->dbSelected()) {
+        std::cout << "-- Database not selected\n";
+        return false;
+    }
+
+    this->database->setTransaction(true);
+
+    return this->database->getTransaction(); 
 }

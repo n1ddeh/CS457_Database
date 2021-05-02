@@ -8,8 +8,8 @@
 #include "table.h"
 
 // Constructor
-Table::Table(std::string table, std::vector<std::pair<std::string, std::string>> column_meta_data, fs::path path) : 
-    table_name(table), column_count(0), column_meta_data(column_meta_data), path(path)
+Table::Table(std::string table, std::vector<std::pair<std::string, std::string>> column_meta_data, fs::path path, fs::path path_metadata) : 
+    table_name(table), column_count(0), row_count(0), column_meta_data(column_meta_data), path(path), locked(false), path_metadata(path_metadata)
     {
         for (auto& col: column_meta_data)
         {
@@ -42,6 +42,8 @@ Table::Table(std::string table, std::vector<std::pair<std::string, std::string>>
                 std::cout << "-- Type Error: Unknown type " << col_type << "\n";
             }
         }
+
+        this->writeMetadata();
     }
 
 Table::~Table() {}
@@ -226,6 +228,9 @@ bool Table::insertRow(const std::vector<std::string>& row)
 
     // Increment row count
     this->row_count++;
+
+    // Update metadata
+    this->writeMetadata();
 
     return true;
 }
@@ -791,5 +796,44 @@ bool Table::printRow(const size_t row) {
         std::cerr << e.what() << "\n";
         return false;
     }
+    return true;
+}
+
+bool Table::writeMetadata() 
+{
+    const fs::path path = this->getPathMetadata();
+
+    std::ofstream metadata_file(path, std::ofstream::out | std::ofstream::trunc);
+    try {
+        metadata_file << "table_name: " << this->getTable() << "\n";
+
+        metadata_file << "columns: ";
+        for (auto& c : this->getMetaData()) {
+            metadata_file << c.first << " " << c.second << ",";
+        }
+        metadata_file << "\n";
+
+        metadata_file << "column_count: " << this->column_count << "\n";
+        metadata_file << "row_count: " << this->row_count << "\n";
+
+        metadata_file << "table_path: " << std::string(this->path.u8string()) << "\n";
+        metadata_file << "metadata_path: " << std::string(this->path_metadata.u8string()) << "\n";
+
+        metadata_file << "locked: " << this->getLocked() ? "true" : "false";
+        
+        metadata_file << "\n";
+    }
+    catch(const std::exception& e) {
+        std::cerr << e.what() << "\n";
+        if (metadata_file.is_open()) {
+            metadata_file.close();
+        }
+        return false;
+    }
+
+    if (metadata_file.is_open()) {
+        metadata_file.close();
+    }
+
     return true;
 }

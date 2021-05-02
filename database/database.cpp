@@ -7,7 +7,9 @@
 
 #include "database.h"
 
-Database::Database(const std::string& database, const fs::path& path) : database_name(database), path(path) {}
+Database::Database(const std::string& database, const fs::path& path, const fs::path& path_metadata) : database_name(database), path(path), path_metadata(path_metadata), transaction_mode(false) {
+    this->writeMetadata();
+}
 
 Database::Database() : database_name("undefined") {}
 
@@ -32,10 +34,17 @@ bool Database::tableExists(const std::string& table_name)
 
 bool Database::createTable(std::string table_name, std::vector<std::pair<std::string, std::string>> columns)
 {
-    fs::path table_path = this->path;
-    table_path += "/"; table_path += table_name; table_path += ".csv";
+    fs::path table_path = this->path, table_metadata_path = this->path;
 
-    /// Create and open the table file
+    table_path += "/"; table_path += table_name; table_path += "/"; 
+    table_metadata_path = table_path;
+
+    fs::create_directories(table_path);
+    
+    table_path += table_name; table_path += ".csv";
+    table_metadata_path += table_name; table_metadata_path += ".txt";
+
+    // Create and open the table file
     std::ofstream table_file(table_path, std::ofstream::out);
 
     for (auto& c : columns) {
@@ -49,10 +58,12 @@ bool Database::createTable(std::string table_name, std::vector<std::pair<std::st
     table_file.close();
 
     // Create a new table
-    std::shared_ptr<Table> new_table = std::make_shared<Table>(table_name, columns, table_path);
+    std::shared_ptr<Table> new_table = std::make_shared<Table>(table_name, columns, table_path, table_metadata_path);
 
     // Insert the table into memory
     this->tables.insert(std::make_pair(table_name, new_table));
+
+    this->writeMetadata();
     
     return true;
 }
@@ -872,6 +883,42 @@ bool Database::printQuery(
             table1->printRow(r);
             std::cout << "\n";
         }
+    }
+
+    return true;
+}
+
+bool Database::writeMetadata()
+{
+    const fs::path path = this->getPathMetadata();
+
+    std::ofstream metadata_file(path, std::ofstream::out | std::ofstream::trunc);
+
+    try {
+        metadata_file << "table_name: " << this->getDatabaseName() << "\n";
+
+        metadata_file << "tables: ";
+        for (auto & t : this->getTables()) {
+            metadata_file << t.first << ",";
+        }
+        metadata_file << "\n";
+
+        metadata_file << "database_path: " << std::string(this->path.u8string()) << "\n";
+        metadata_file << "metadata_path: " << std::string(this->path_metadata.u8string()) << "\n";
+
+        metadata_file << "transaction_mode: " << this->getTransaction() ? "true" : "false";
+        metadata_file << "\n";
+
+    } catch(const std::exception& e) {
+        std::cerr << e.what() << "\n";
+        if (metadata_file.is_open()) {
+            metadata_file.close();
+        }
+        return false;
+    }
+
+    if (metadata_file.is_open()) {
+        metadata_file.close();
     }
 
     return true;

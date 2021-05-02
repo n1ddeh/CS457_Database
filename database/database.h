@@ -16,11 +16,13 @@ class Database
 private:
     std::string database_name;                                      // Database Name
     std::unordered_map<std::string, std::shared_ptr<Table>> tables; // Tables within the Database
-    fs::path path;                                      // The path to the database folder
+    fs::path path;                                                  // The path to the database folder
+    fs::path path_metadata;
+    bool transaction_mode;
 
 public:
     Database();
-    Database(const std::string& database, const fs::path& path);
+    Database(const std::string& database, const fs::path& path, const fs::path& path_metadata);
     ~Database();
     
     bool createTable(std::string table_name, std::vector<std::pair<std::string, std::string>> columns);
@@ -92,6 +94,30 @@ public:
         std::unordered_map<size_t, std::vector<size_t>> map2,
         bool inner
     );
+
+    bool setTransaction(bool val) {
+        this->transaction_mode = val;
+        this->writeMetadata();
+        return this->transaction_mode;
+    }
+
+    bool getTransaction() {
+        return this->transaction_mode;
+    }
+
+    fs::path getPath() {
+        return this->path;
+    }
+
+    fs::path getPathMetadata() {
+        return this->path_metadata;
+    }
+
+    bool writeMetadata();
+
+    std::unordered_map<std::string, std::shared_ptr<Table>> getTables() {
+        return this->tables;
+    }
 };
 
 #endif // DATABASE_H_
