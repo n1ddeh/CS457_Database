@@ -36,7 +36,7 @@ bool Database::createTable(std::string table_name, std::vector<std::pair<std::st
 {
     fs::path table_path = this->path, table_metadata_path = this->path;
 
-    table_path += "/"; table_path += table_name; table_path += "/"; 
+    table_path += table_name; table_path += "/"; 
     table_metadata_path = table_path;
 
     fs::create_directories(table_path);
@@ -895,7 +895,7 @@ bool Database::writeMetadata()
     std::ofstream metadata_file(path, std::ofstream::out | std::ofstream::trunc);
 
     try {
-        metadata_file << "table_name: " << this->getDatabaseName() << "\n";
+        metadata_file << "database_name: " << this->getDatabaseName() << "\n";
 
         metadata_file << "tables: ";
         for (auto & t : this->getTables()) {

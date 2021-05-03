@@ -50,6 +50,7 @@ public:
 
     /**  Creates a database and maps it*/
     bool createDatabase(const std::vector<std::string>& args);
+    bool createDatabase(const std::string name, const fs::path& path, const fs::path& path_metadata);
 
     /**  Drops a database*/
     bool dropDatabase(const std::vector<std::string>& args);
@@ -108,6 +109,8 @@ public:
 
     void errorUnknownArguments(const std::vector<std::string>& args, const std::string& cmd, unsigned int index = 0);
 
+    bool readFilesystem();
+
 private:
     std::unordered_map<std::string, std::shared_ptr<Database>> databases;   // Database Storage <database_name, database*>
     std::unordered_map<std::string, unsigned int> commands;                 // Command Storage <command_name, command_id>
@@ -115,6 +118,8 @@ private:
     std::shared_ptr<Database> database;                                     // The selected database
     unsigned int database_count;                                            // The number of stored databases
     std::queue<std::string> arguments;
+    std::string process_id;
+    std::queue<std::string> transactionArguments;
 };
 
 #endif

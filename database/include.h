@@ -19,6 +19,7 @@
 #include <numeric>
 #include <map>
 #include <queue>
+#include <random>
 #include <regex>
 #include <sstream>
 #include <string>
@@ -161,6 +162,25 @@ static bool _isBalancedParenthesis(std::string s)
         }
     }
     return p.empty();
+}
+
+static unsigned int _randomChar() {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, 255);
+    return dis(gen);
+}
+
+static std::string _uuid(const unsigned int len) {
+    std::stringstream ss;
+    for (auto i = 0; i < len; i++) {
+        const auto rc = _randomChar();
+        std::stringstream hexstream;
+        hexstream << std::hex << rc;
+        auto hex = hexstream.str();
+        ss << (hex.length() < 2 ? '0' + hex : hex);
+    }
+    return ss.str();
 }
 
 #endif // INCLUDE_H_

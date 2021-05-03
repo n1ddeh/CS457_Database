@@ -109,7 +109,17 @@ public:
         return this->path;
     }
 
+    fs::path setPath(const fs::path& path) {
+        this->path = path;
+        return this->path;
+    }
+
     fs::path getPathMetadata() {
+        return this->path_metadata;
+    }
+
+    fs::path setPathMetadata(const fs::path& path) {
+        this->path_metadata = path;
         return this->path_metadata;
     }
 
