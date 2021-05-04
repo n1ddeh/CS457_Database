@@ -31,6 +31,53 @@
 #include <vector>
 
 namespace fs = std::filesystem;
+typedef struct DatabaseMetadata {
+    DatabaseMetadata (
+        const std::string& _n = "undefined", 
+        const fs::path& _p = fs::path(),
+        const fs::path& _p_m = fs::path(),
+        const bool _t_m = false
+    ): 
+        database_name(_n), 
+        path(_p), 
+        path_metadata(_p_m), 
+        transaction_mode(_t_m)
+    {}
+
+    const std::string database_name;
+    const fs::path path;
+    const fs::path path_metadata;
+    const bool transaction_mode;
+} DatabaseMetadata;
+
+typedef struct TableMetadata {
+    TableMetadata (
+        const std::string& _n = "undefined",
+        const std::vector<std::pair<std::string, std::string>>& c_md = std::vector<std::pair<std::string, std::string>>(),
+        const unsigned int _c = 0,
+        const unsigned int _r = 0,
+        const fs::path _p = fs::path(),
+        const fs::path _pm = fs::path(),
+        const bool _l = false
+    ):
+        table_name(_n),
+        column_meta_data(c_md),
+        column_count(_c),
+        row_count(_r),
+        path(_p),
+        path_metadata(_pm),
+        locked(_l)
+    {}
+
+    const std::string table_name;
+    const std::vector<std::pair<std::string, std::string>> column_meta_data; 
+    const unsigned int column_count;                          
+    const unsigned int row_count;                           
+    const fs::path path;                                        
+    const fs::path path_metadata;
+    const bool locked;
+
+} TableMetadata;
 
 // Converts a string to upper case
 static std::string _toUpper(std::string str)

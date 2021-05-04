@@ -36,26 +36,29 @@ bool Database::createTable(std::string table_name, std::vector<std::pair<std::st
 {
     fs::path table_path = this->path, table_metadata_path = this->path;
 
-    table_path += table_name; table_path += "/"; 
-    table_metadata_path = table_path;
+    table_path += "/"; table_path += table_name; 
 
-    fs::create_directories(table_path);
-    
-    table_path += table_name; table_path += ".csv";
-    table_metadata_path += table_name; table_metadata_path += ".txt";
+    if (!fs::exists(table_path))
+    {
+        fs::create_directories(table_path);
 
-    // Create and open the table file
-    std::ofstream table_file(table_path, std::ofstream::out);
+        table_path += "/"; table_path += table_name; table_metadata_path = table_path;
+        table_path += ".csv";
+        table_metadata_path += ".txt";
 
-    for (auto& c : columns) {
-        table_file << c.first << ' ' << c.second << ',';
+        // Create and open the table file
+        std::ofstream table_file(table_path, std::ofstream::out);
+
+        for (auto& c : columns) {
+            table_file << c.first << ' ' << c.second << ',';
+        }
+
+        // Insert new line
+        table_file << '\n';
+
+        // Close the file stream
+        table_file.close();
     }
-
-    // Insert new line
-    table_file << '\n';
-
-    // Close the file stream
-    table_file.close();
 
     // Create a new table
     std::shared_ptr<Table> new_table = std::make_shared<Table>(table_name, columns, table_path, table_metadata_path);
@@ -63,7 +66,10 @@ bool Database::createTable(std::string table_name, std::vector<std::pair<std::st
     // Insert the table into memory
     this->tables.insert(std::make_pair(table_name, new_table));
 
-    this->writeMetadata();
+    if (!fs::exists(table_metadata_path))
+    {
+        this->writeMetadata();
+    }
     
     return true;
 }
@@ -922,4 +928,102 @@ bool Database::writeMetadata()
     }
 
     return true;
+}
+
+bool Database::writeMetadata(const DatabaseMetadata& md )
+{
+    const fs::path path = md.path_metadata;
+
+    std::ofstream metadata_file(path, std::ofstream::out | std::ofstream::trunc);
+
+    try {
+        metadata_file << "database_name: " << md.database_name << "\n";
+
+        metadata_file << "tables: ";
+        for (auto & t : this->getTables()) {
+            metadata_file << t.first << ",";
+        }
+        metadata_file << "\n";
+
+        metadata_file << "database_path: " << std::string(md.path.u8string()) << "\n";
+        metadata_file << "metadata_path: " << std::string(md.path_metadata.u8string()) << "\n";
+
+        metadata_file << "transaction_mode: " << md.transaction_mode ? "true" : "false";
+        metadata_file << "\n";
+
+    } catch(const std::exception& e) {
+        std::cerr << e.what() << "\n";
+        if (metadata_file.is_open()) {
+            metadata_file.close();
+        }
+        return false;
+    }
+
+    if (metadata_file.is_open()) {
+        metadata_file.close();
+    }
+
+    return true;
+}
+
+const DatabaseMetadata Database::readMetadata()
+{
+    const fs::path md_path = this->getPathMetadata();
+
+    if (fs::exists(md_path))
+    {
+        // Open an input stream
+        std::ifstream metadata_file(md_path, std::ifstream::in);
+
+        // Initialize variables we are checking for in metadata file
+        std::string db_name;
+        fs::path db_path, md_path;
+        bool transaction_mode;
+
+        // Iterate over every line in metadata file, look for specific attributes, and parse those attributes
+        std::string line; int index;
+        while (std::getline(metadata_file, line))
+        {
+            if ((index = line.find("database_name: ", 0)) != std::string::npos) {
+                db_name = line.substr(index + sizeof("database_name") + 1, line.length());
+            }
+            else if ((index = line.find("database_path: ", 0)) != std::string::npos) {
+                db_path = line.substr(index + sizeof("database_path") + 1, line.length());
+            } 
+            else if ((index = line.find("metadata_path: ", 0)) != std::string::npos) {
+                md_path = line.substr(index + sizeof("metadata_path") + 1, line.length());
+            }
+            else if ((index = line.find("transaction_mode: ", 0)) != std::string::npos) {
+                transaction_mode = line.substr(index + sizeof("transaction_mode") + 1, line.length()) == "0" ? false : true;
+            }
+        }
+
+        DatabaseMetadata md(db_name, db_path, md_path, transaction_mode);
+
+        return md;
+    }
+
+    DatabaseMetadata err("undefined", "undefined", "undefined", false);
+
+    return err;
+}
+
+void Database::applyMetadata(const DatabaseMetadata& md ) 
+{
+    this->setDatabaseName(md.database_name);
+    this->setPath(md.path);
+    this->setPath(md.path_metadata);
+    this->setTransaction(md.transaction_mode);
+}
+
+const DatabaseMetadata Database::getMetadata()
+{
+    const DatabaseMetadata metadata(
+        this->getDatabaseName(),
+        this->getPath(),
+        this->getPathMetadata(),
+        this->getTransaction()
+    );
+
+    return metadata;
 }

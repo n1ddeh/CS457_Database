@@ -111,6 +111,14 @@ public:
 
     bool readFilesystem();
 
+    // Reads a database metadata file
+    const DatabaseMetadata readDatabaseMetadata(const fs::path& path);
+
+    // Reads a table metadata file
+    const TableMetadata readTableMetadata(const fs::path& path);
+
+    bool readCSV(std::shared_ptr<Table> table, const fs::path& path);
+
 private:
     std::unordered_map<std::string, std::shared_ptr<Database>> databases;   // Database Storage <database_name, database*>
     std::unordered_map<std::string, unsigned int> commands;                 // Command Storage <command_name, command_id>

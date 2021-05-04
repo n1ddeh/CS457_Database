@@ -122,4 +122,5 @@ public:
     void decrementRowCount() { this->row_count--; }
     void setLocked(bool val) { this->locked = val; }
 };
+
 #endif //TABLE_H_

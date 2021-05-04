@@ -1156,119 +1156,40 @@ bool SQL::readFilesystem()
             // If the metadata file exists, parse it
             if (fs::exists(metadata_path))
             {
-                // Open an input stream
-                std::ifstream metadata_file(metadata_path, std::ifstream::in);
-
-                // Initialize variables we are checking for in metadata file
-                fs::path db_path, md_path;
-                bool transaction_mode;
-
-                // Iterate over every line in metadata file, look for specific attributes, and parse those attributes
-                std::string line; int index;
-                while (std::getline(metadata_file, line))
-                {
-                    if ((index = line.find("database_name: ", 0)) != std::string::npos) {
-                        db_name = line.substr(index + sizeof("database_name") + 1, line.length());
-                    }
-                    else if ((index = line.find("database_path: ", 0)) != std::string::npos) {
-                        db_path = line.substr(index + sizeof("database_path") + 1, line.length());
-                    } 
-                    else if ((index = line.find("metadata_path: ", 0)) != std::string::npos) {
-                        md_path = line.substr(index + sizeof("metadata_path") + 1, line.length());
-                    }
-                    else if ((index = line.find("transaction_mode: ", 0)) != std::string::npos) {
-                        transaction_mode = line.substr(index + sizeof("transaction_mode") + 1, line.length()) == "0" ? false : true;
-                    }
-                }
-
-                // If the file is open, close it
-                if (metadata_file.is_open()) metadata_file.close();
+                const DatabaseMetadata db_md = this->readDatabaseMetadata(metadata_path);
                 
                 // Create the daatabase and if successful, continue
                 if (createDatabase(db_name, path, metadata_path)) {
 
                     // Get a pointer to the database and set the transaction mode
                     auto db = this->getDatabase(db_name);
-                    db->setTransaction(transaction_mode);
+                    db->setDatabaseName(db_md.database_name);
+                    db->setTransaction(db_md.transaction_mode);
 
                     // Iterate over every directory in the database directory
-                    for (const auto& table_path : fs::directory_iterator(path)) {
-
-                        // Get the name of the table from the directory name
-                        std::string table_name = (std::string)fs::path(table_path).filename();
-
-                        // Get the path of the table metadata file
-                        md_path = table_path; md_path += "/"; md_path += table_name; md_path += ".txt";
-
-                        // If the metadata file exists for the table, parse it
-                        if (fs::exists(md_path))
+                    for (const auto& table_path : fs::directory_iterator(path)) 
+                    {
+                        if (fs::is_directory(table_path))
                         {
-                            // Open an input stream
-                            std::ifstream metadata_file(md_path, std::ifstream::in);
+                            // Get the name of the table from the directory name
+                            std::string table_name = (std::string)fs::path(table_path).filename();
 
-                            // Initialize varaibles we want to collect about the table.
-                            std::string columns;
-                            std::vector<std::pair<std::string, std::string>> column_meta_data;
-                            unsigned int column_count = 0, row_count = 0;
-                            bool locked = false;
+                            // Get the path of the table metadata file
+                            fs::path md_path = table_path; md_path += "/"; md_path += table_name; md_path += ".txt";
 
-                            // Iterate over every line in the metadata file
-                            while (std::getline(metadata_file, line))
-                            {
-                                if ((index = line.find("columns: ", 0)) != std::string::npos) {
-                                    columns = line.substr(index + sizeof("columns") + 1, line.length());
-                                    std::vector<std::string> split_columns = _split(columns, ',');
-
-                                    for (auto& c : split_columns) {
-                                        std::vector<std::string> col = _split(c, ' ');
-                                        column_meta_data.emplace_back(std::make_pair(col[0], col[1]));
-                                    }
-                                }
-                                else if ((index = line.find("column_count: ", 0)) != std::string::npos) {
-                                    column_count = std::stoi(line.substr(index + sizeof("column_count") + 1, line.length()));
-                                } 
-                                else if ((index = line.find("row_count: ", 0)) != std::string::npos) {
-                                    row_count = std::stoi(line.substr(index + sizeof("row_count") + 1, line.length()));
-                                }
-                                else if ((index = line.find("locked: ", 0)) != std::string::npos) {
-                                    locked = line.substr(index + sizeof("locked") + 1, line.length()) == "0" ? false : true;
-                                }
-                            }
-
-                            // If the file is still open, close it
-                            if (metadata_file.is_open()) metadata_file.close();
+                            const TableMetadata table_metadata = this->readTableMetadata(md_path);
 
                             // Create the table, and if successful, continue
-                            if (db->createTable(table_name, column_meta_data)) 
+                            if (db->createTable(table_metadata.table_name, table_metadata.column_meta_data)) 
                             {
                                 // Get a pointer to the table and set the locked state
-                                auto table = db->getTable(table_name);
-                                table->setLocked(locked);
+                                auto table = db->getTable(table_metadata.table_name);
+                                table->setLocked(table_metadata.locked);
 
                                 // Get the path of the csv file
                                 fs::path csv_path = table_path; csv_path += "/"; csv_path += table_name; csv_path += ".csv";
 
-                                // If the csv file exists and is NOT a directory, continue
-                                if (fs::exists(csv_path) && fs::is_regular_file(csv_path))
-                                {
-                                    // Open an input stream
-                                    std::ifstream csv_file(csv_path, std::ifstream::in);
-
-                                    // Iterate over every line in the csv
-                                    while (std::getline(csv_file, line)) 
-                                    {
-                                        // This skips the first row
-                                        if (line == columns) continue;
-
-                                        else {
-                                            // Split the line by commas, spltting columns by a vector of (name, type)
-                                            std::vector<std::string> row = _split(line, ',');
-
-                                            // Insert the row into the table
-                                            table->insertRow(row);
-                                        }
-                                    }                                    
-                                }
+                                this->readCSV(table, csv_path);
                             }
                         }
                     }
@@ -1279,4 +1200,148 @@ bool SQL::readFilesystem()
     }
 
     return true;
+}
+
+const DatabaseMetadata SQL::readDatabaseMetadata(const fs::path& path)
+{
+    if (fs::exists(path))
+    {
+        // Open an input stream
+        std::ifstream metadata_file(path, std::ifstream::in);
+
+        // Initialize variables we are checking for in metadata file
+        std::string db_name;
+        fs::path db_path, md_path;
+        bool transaction_mode;
+
+        // Iterate over every line in metadata file, look for specific attributes, and parse those attributes
+        std::string line; int index;
+        while (std::getline(metadata_file, line))
+        {
+            if ((index = line.find("database_name: ", 0)) != std::string::npos) {
+                db_name = line.substr(index + sizeof("database_name") + 1, line.length());
+            }
+            else if ((index = line.find("database_path: ", 0)) != std::string::npos) {
+                db_path = line.substr(index + sizeof("database_path") + 1, line.length());
+            } 
+            else if ((index = line.find("metadata_path: ", 0)) != std::string::npos) {
+                md_path = line.substr(index + sizeof("metadata_path") + 1, line.length());
+            }
+            else if ((index = line.find("transaction_mode: ", 0)) != std::string::npos) {
+                transaction_mode = line.substr(index + sizeof("transaction_mode") + 1, line.length()) == "0" ? false : true;
+            }
+        }
+
+        DatabaseMetadata md(db_name, db_path, md_path, transaction_mode);
+        
+        return md;
+    }
+
+    DatabaseMetadata err("undefined", "undefined", "undefined", false);
+
+    return err;
+}
+
+const TableMetadata SQL::readTableMetadata(const fs::path& path)
+{
+    // If the metadata file exists for the table, parse it
+    if (fs::exists(path))
+    {
+        // Open an input stream
+        std::ifstream metadata_file(path, std::ifstream::in);
+
+        // Initialize varaibles we want to collect about the table.
+        std::string table_name, columns;
+        fs::path table_path, metadata_path;
+        std::vector<std::pair<std::string, std::string>> column_meta_data;
+        unsigned int column_count = 0, row_count = 0;
+        bool locked = false;
+
+        // Iterate over every line in the metadata file
+        size_t index;
+        std::string line;
+        while (std::getline(metadata_file, line))
+        {
+            if ((index = line.find("table_name: ", 0)) != std::string::npos) {
+                table_name = line.substr(index + sizeof("table_name") + 1, line.length());
+            } 
+            else if ((index = line.find("columns: ", 0)) != std::string::npos) {
+                columns = line.substr(index + sizeof("columns") + 1, line.length());
+                std::vector<std::string> split_columns = _split(columns, ',');
+
+                for (auto& c : split_columns) {
+                    std::vector<std::string> col = _split(c, ' ');
+                    column_meta_data.emplace_back(std::make_pair(col[0], col[1]));
+                }
+            }
+            else if ((index = line.find("column_count: ", 0)) != std::string::npos) {
+                column_count = std::stoi(line.substr(index + sizeof("column_count") + 1, line.length()));
+            } 
+            else if ((index = line.find("row_count: ", 0)) != std::string::npos) {
+                row_count = std::stoi(line.substr(index + sizeof("row_count") + 1, line.length()));
+            }
+            else if ((index = line.find("table_path: ", 0)) != std::string::npos) {
+                table_path = line.substr(index + sizeof("table_path") + 1, line.length());
+            }
+            else if ((index = line.find("metadata_path: ", 0)) != std::string::npos) {
+                metadata_path = line.substr(index + sizeof("metadata_path") + 1, line.length());
+            }
+            else if ((index = line.find("locked: ", 0)) != std::string::npos) {
+                locked = line.substr(index + sizeof("locked") + 1, line.length()) == "0" ? false : true;
+            }
+        }
+
+        // If the file is still open, close it
+        if (metadata_file.is_open()) metadata_file.close();
+
+        const TableMetadata metadata(
+            table_name,
+            column_meta_data,
+            column_count,
+            row_count,
+            table_path,
+            metadata_path,
+            locked
+        );
+
+        return metadata;
+    }
+}
+
+bool SQL::readCSV(std::shared_ptr<Table> table, const fs::path& path)
+{
+    // If the csv file exists and is NOT a directory, continue
+    if (fs::exists(path) && fs::is_regular_file(path))
+    {
+        // Open an input stream
+        std::ifstream csv_file(path, std::ifstream::in);
+
+        // Initialize a string container
+        std::string line;
+
+        // Do nothing with the first line (the first line are headers)
+        std::getline(csv_file, line);
+
+        // Iterate over every line in the csv
+        while (std::getline(csv_file, line)) 
+        {
+            // Split the line by commas, spltting columns by a vector of (name, type)
+            std::vector<std::string> row = _split(line, ',');
+
+            // Insert the row into the table
+            try {
+                table->insertRow(row);
+            }
+            catch(const std::exception& e) {
+                // Do nothing with exception and continue
+            }
+            
+        }
+
+        // True for success
+        return true;                                
+    }
+
+    // False for failure
+    return false;
 }

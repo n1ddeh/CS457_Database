@@ -9,8 +9,6 @@
 
 #include "include.h"
 #include "table.h"
-
-#define STORAGE_PATH std::string("../storage")
 class Database
 {
 private:
@@ -123,7 +121,18 @@ public:
         return this->path_metadata;
     }
 
+    // Write private variables to files system
     bool writeMetadata();
+    bool writeMetadata(const DatabaseMetadata& md );
+
+    // Read metadata from filesystem
+    const DatabaseMetadata readMetadata();
+
+    // Set private variables in memory to database metadata
+    void applyMetadata(const DatabaseMetadata& md );
+
+    // Get metadata from memory
+    const DatabaseMetadata getMetadata();
 
     std::unordered_map<std::string, std::shared_ptr<Table>> getTables() {
         return this->tables;
