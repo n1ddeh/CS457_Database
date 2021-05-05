@@ -34,6 +34,14 @@ SQL::SQL(std::string filePath)
 
 SQL::~SQL()
 {
+    fs::path p = fs::current_path();
+    p += "/transactions/";
+    p += this->process_id;
+
+    if (fs::exists(p)) {
+        fs::remove_all(p);
+    }
+
     std::cout << "-- All done.\n";
 }
 
@@ -52,7 +60,7 @@ void SQL::initializeCommands()
     std::pair<std::string, unsigned int> cmd5("INSERT", 5);
     std::pair<std::string, unsigned int> cmd6("UPDATE", 6);
     std::pair<std::string, unsigned int> cmd7("DELETE", 7);
-    std::pair<std::string, unsigned int> cmd8("BEGIN TRANSACTION", 8);
+    std::pair<std::string, unsigned int> cmd8("BEGIN",  8);
     std::pair<std::string, unsigned int> cmd9("CLEAR",  9);
     std::pair<std::string, unsigned int> cmdA("COMMIT", 10);
 
@@ -75,7 +83,7 @@ void SQL::SQL_CLI()
     // The user input
     std::string input;
 
-        // Replace multiple tabs and spaces with a single space
+    // Replace multiple tabs and spaces with a single space
     std::regex regx("[ \t]+");
 
     // File input
@@ -434,6 +442,8 @@ bool SQL::useDatabase(const std::vector<std::string>& args)
 bool SQL::HANDLE_CMD(std::vector<std::string> args)
 {
     try {
+        readFilesystem();
+
         // Grab the commands from the provided arguments
         std::string command = _toUpper(args[0]);
 
@@ -483,7 +493,7 @@ bool SQL::HANDLE_CMD(std::vector<std::string> args)
             const std::string insert_type = _toUpper(args[1]);
             if (insert_type == "INTO") return insertInto(args);
             else {
-                std::cout << "-- Invalid insert specifyer: " << insert_type << "\n";
+                std::cout << "-- Invalid insert specifier: " << insert_type << "\n";
                 return false;
             }
         }
@@ -503,6 +513,10 @@ bool SQL::HANDLE_CMD(std::vector<std::string> args)
         {
             system("clear");
             return true;
+        }
+        else if (command_id == 10)
+        {
+            return commit(args);
         }
     }
     catch(const std::exception& e)
@@ -756,6 +770,8 @@ bool SQL::selectAllFromTable(const std::string& table_name)
     try {
         std::shared_ptr<Table> table = this->database->getTable(table_name);
 
+        readCSV(table, table->getPath());
+
         return table->printAll();
     }
     catch(const std::exception& e)
@@ -907,8 +923,12 @@ bool SQL::insertInto(const std::vector<std::string>& args)
     // Join the parameters as a string with space as delimeter
     std::string paramsString = _join(paramsVec, std::string(" "));
 
+    // Replace multiple tabs and spaces with a single space
+    std::regex regx("[ \t]+");
+    paramsString = std::regex_replace(paramsString, regx, std::string(""));
+
     // Ensure the user specified correct formatting
-    std::string values = _toUpper(std::string(paramsString.begin() + 1, paramsString.begin() + 8));
+    std::string values = _toUpper(std::string(paramsString.begin(), paramsString.begin() + 7));
     if (values != "VALUES(" || paramsString.back() != ')') 
     {
         std::cout << "-- INSERT INTO parameters not formatted correctly. Correct format is VALUES(x, y, z, ...)\n";
@@ -916,7 +936,7 @@ bool SQL::insertInto(const std::vector<std::string>& args)
     }
 
     // Parse the parameters we want to insert: parse format =  x,y,z,...
-    std::string paramsParsed = std::string(paramsString.begin() + 8, paramsString.end() - 1);
+    std::string paramsParsed = std::string(paramsString.begin() + 7, paramsString.end() - 1);
 
     // Isolate the parameters without their delimeters
     std::vector<std::string> isolatedParams = isolateParams(paramsParsed);
@@ -925,7 +945,7 @@ bool SQL::insertInto(const std::vector<std::string>& args)
     std::shared_ptr<Table> table = this->database->getTable(table_name);
 
     // Return the insertRow function in table
-    bool success = table->insertRow(isolatedParams);
+    bool success = table->insertRow(isolatedParams, true);
 
     if (!success) return false;
 
@@ -988,6 +1008,10 @@ bool SQL::updateTable(const std::vector<std::string>& args)
     // If the database has NOT been selected, alert the user and return false.
     if (!dbSelected()) { std::cout << "-- Database not selected\n"; return false; }
 
+    // Check metadata for any updates
+    const DatabaseMetadata db_md = this->readDatabaseMetadata(this->database->getPathMetadata());
+    this->database->applyMetadata(db_md);
+
     // Grab the table name
     const std::string table_name = args[1];
 
@@ -1049,8 +1073,50 @@ bool SQL::updateTable(const std::vector<std::string>& args)
         value_to_search = value_to_search.substr(1, value_to_search.size() - 2);
     }
 
+    const TableMetadata t_md = this->readTableMetadata(table->getPathMetadata());
+    table->applyMetadata(t_md);
+
+    bool mode = true;
+    if (this->database->getTransaction() == true)
+    {
+        if (_toUpper(table->getLocked()) != "FALSE" && table->getLocked() != "0" && table->getLocked() != this->process_id) {
+            std::cout << "-- Error: Table " << table_name << " is locked!\n";
+            return false;
+        }
+        
+        else if (table->getLocked() == this->process_id || _toUpper(table->getLocked()) == "FALSE" || table->getLocked() == "0" ) {
+            if (_toUpper(table->getLocked()) != this->process_id) {
+                table->setLocked(this->process_id);
+                table->writeMetadata();
+            }
+            fs::path p = fs::current_path();
+            p += "/transactions/"; p += this->process_id; p += "/";
+            if (!fs::exists(p)) {
+                fs::create_directories(p);
+            }
+
+            p += table_name; p += ".txt";
+            std::ofstream transaction_file(p, std::ofstream::out | std::ofstream::ate );
+            
+            std::string command = _join(args, " ");
+            command += ";";
+
+            transaction_file << command << "\n";
+
+            if (transaction_file.is_open()) {
+                transaction_file.close();
+            }
+
+            mode = false;
+        }
+    }
+
     // Query the table to update based on these parameters
-    return table->updateColumnSet(column_to_update, column_to_search, value_to_update, value_to_search, op2);
+    bool success = table->updateColumnSet(column_to_update, column_to_search, value_to_update, value_to_search, op2, mode);
+    table->writeMetadata();
+    table->writeCSV();
+
+    return success;
 }
 
 bool SQL::deleteFromTable(const std::vector<std::string>& args)
@@ -1125,7 +1191,17 @@ bool SQL::beginTransaction(const std::vector<std::string>& args)
         return false;
     }
 
-    this->database->setTransaction(true);
+    if (this->database->getTransaction() == true) {
+        std::cout << "-- Transaction already occuring in " << this->database->getDatabaseName() << "\n";
+    }
+    else { 
+        this->database->setTransaction(true);
+        fs::path p = fs::current_path();
+        p += "/transactions/"; p += this->process_id; p += "/";
+        fs::create_directories(p);
+        std::cout << "-- Transaction starts.\n";
+        this->database->writeMetadata();
+    }
 
     return this->database->getTransaction(); 
 }
@@ -1164,7 +1240,7 @@ bool SQL::readFilesystem()
                     // Get a pointer to the database and set the transaction mode
                     auto db = this->getDatabase(db_name);
                     db->setDatabaseName(db_md.database_name);
-                    db->setTransaction(db_md.transaction_mode);
+                    db->setTransaction(db->getTransaction());
 
                     // Iterate over every directory in the database directory
                     for (const auto& table_path : fs::directory_iterator(path)) 
@@ -1179,8 +1255,15 @@ bool SQL::readFilesystem()
 
                             const TableMetadata table_metadata = this->readTableMetadata(md_path);
 
+                            if (db->tableExists(table_metadata.table_name))
+                            {
+                                auto table = db->getTable(table_metadata.table_name);
+                                table->setLocked(table_metadata.locked);
+                                fs::path csv_path = table_path; csv_path += "/"; csv_path += table_name; csv_path += ".csv";
+                            }
+
                             // Create the table, and if successful, continue
-                            if (db->createTable(table_metadata.table_name, table_metadata.column_meta_data)) 
+                            else if (db->createTable(table_metadata.table_name, table_metadata.column_meta_data)) 
                             {
                                 // Get a pointer to the table and set the locked state
                                 auto table = db->getTable(table_metadata.table_name);
@@ -1227,17 +1310,14 @@ const DatabaseMetadata SQL::readDatabaseMetadata(const fs::path& path)
             else if ((index = line.find("metadata_path: ", 0)) != std::string::npos) {
                 md_path = line.substr(index + sizeof("metadata_path") + 1, line.length());
             }
-            else if ((index = line.find("transaction_mode: ", 0)) != std::string::npos) {
-                transaction_mode = line.substr(index + sizeof("transaction_mode") + 1, line.length()) == "0" ? false : true;
-            }
         }
 
-        DatabaseMetadata md(db_name, db_path, md_path, transaction_mode);
+        DatabaseMetadata md(db_name, db_path, md_path);
         
         return md;
     }
 
-    DatabaseMetadata err("undefined", "undefined", "undefined", false);
+    DatabaseMetadata err("undefined", "undefined", "undefined");
 
     return err;
 }
@@ -1255,7 +1335,7 @@ const TableMetadata SQL::readTableMetadata(const fs::path& path)
         fs::path table_path, metadata_path;
         std::vector<std::pair<std::string, std::string>> column_meta_data;
         unsigned int column_count = 0, row_count = 0;
-        bool locked = false;
+        std::string locked = "false";
 
         // Iterate over every line in the metadata file
         size_t index;
@@ -1287,7 +1367,7 @@ const TableMetadata SQL::readTableMetadata(const fs::path& path)
                 metadata_path = line.substr(index + sizeof("metadata_path") + 1, line.length());
             }
             else if ((index = line.find("locked: ", 0)) != std::string::npos) {
-                locked = line.substr(index + sizeof("locked") + 1, line.length()) == "0" ? false : true;
+                locked = line.substr(index + sizeof("locked") + 1, line.length());
             }
         }
 
@@ -1306,6 +1386,8 @@ const TableMetadata SQL::readTableMetadata(const fs::path& path)
 
         return metadata;
     }
+
+    return TableMetadata();
 }
 
 bool SQL::readCSV(std::shared_ptr<Table> table, const fs::path& path)
@@ -1313,6 +1395,13 @@ bool SQL::readCSV(std::shared_ptr<Table> table, const fs::path& path)
     // If the csv file exists and is NOT a directory, continue
     if (fs::exists(path) && fs::is_regular_file(path))
     {
+
+        unsigned int row_count = table->getRowCount();
+
+        for(size_t i = 0; i < row_count; i++) {
+            table->deleteRow(0);
+        }
+
         // Open an input stream
         std::ifstream csv_file(path, std::ifstream::in);
 
@@ -1322,26 +1411,100 @@ bool SQL::readCSV(std::shared_ptr<Table> table, const fs::path& path)
         // Do nothing with the first line (the first line are headers)
         std::getline(csv_file, line);
 
+        std::vector<std::vector<std::string>> rows;
+
         // Iterate over every line in the csv
         while (std::getline(csv_file, line)) 
         {
             // Split the line by commas, spltting columns by a vector of (name, type)
-            std::vector<std::string> row = _split(line, ',');
+            rows.emplace_back( _split(line, ','));
+        }
 
+        for (auto& row : rows) {
             // Insert the row into the table
             try {
-                table->insertRow(row);
+                table->insertRow(row, false);
             }
             catch(const std::exception& e) {
                 // Do nothing with exception and continue
             }
-            
         }
-
         // True for success
         return true;                                
     }
-
     // False for failure
     return false;
+}
+
+bool SQL::commit(const std::vector<std::string>& args)
+{
+    unsigned int n = args.size();
+    const std::string commit = _toUpper(args[0]);
+
+    if (commit != "COMMIT") {
+        std::cout << "Programmer error in commit - returning\n";
+        return false;
+    }
+
+    if (n > 1) {
+        errorUnknownArguments(args, "COMMIT", 1);
+        return false;
+    }
+
+    if (!this->dbSelected()) {
+        std::cout << "-- Database not selected\n";
+        return false;
+    }
+
+    if (!this->database->getTransaction()) {
+        std::cout << "-- Transaction has not begun.\n";
+        return false;
+    }
+
+    fs::path p = fs::current_path();
+    p += "/transactions/";
+    p += this->process_id;
+
+    if (!fs::exists(p))
+    {
+        std::cout << "-- No commits to be made.\n";
+        return false;
+    }
+
+    this->database->setTransaction(false);
+    for (auto& path : fs::directory_iterator(p))
+    {
+        std::string table_name = fs::path(path).filename();
+        table_name = table_name.substr(0, table_name.size() - 4);
+
+        if (this->database->tableExists(table_name))
+        {
+            std::shared_ptr<Table> table = this->database->getTable(table_name);
+
+            fs::path file_path = path;
+
+            std::ifstream command_file(file_path, std::ifstream::in);
+
+            std::string line;
+            while (std::getline(command_file, line)) {
+                std::vector<std::string> args = _split(line, ' ');
+                if (!args.empty()) {
+                    HANDLE_CMD(args);
+                }   
+            }
+
+            if (command_file.is_open()) {
+                command_file.close();
+            }
+
+            fs::remove_all(file_path);
+            table->setLocked("false");
+            table->writeMetadata();
+        }
+    }
+
+    fs::remove_all(p);
+    std::cout << "Transaction commited.\n";
+
+    return true;
 }

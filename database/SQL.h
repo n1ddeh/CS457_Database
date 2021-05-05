@@ -76,6 +76,8 @@ public:
     bool useDatabase(std::shared_ptr<Database> db = nullptr);
     bool useDatabase(const std::vector<std::string>& args);
 
+    bool commit(const std::vector<std::string>& args);
+
     /** Initialized supported column types */
     void initializeTypes();
 
@@ -117,6 +119,7 @@ public:
     // Reads a table metadata file
     const TableMetadata readTableMetadata(const fs::path& path);
 
+    // Reads a csv file and stores it in a table
     bool readCSV(std::shared_ptr<Table> table, const fs::path& path);
 
 private:

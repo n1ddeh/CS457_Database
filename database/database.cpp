@@ -58,6 +58,10 @@ bool Database::createTable(std::string table_name, std::vector<std::pair<std::st
 
         // Close the file stream
         table_file.close();
+    } else {
+        table_path += "/"; table_path += table_name; table_metadata_path = table_path;
+        table_path += ".csv";
+        table_metadata_path += ".txt";
     }
 
     // Create a new table
@@ -948,7 +952,6 @@ bool Database::writeMetadata(const DatabaseMetadata& md )
         metadata_file << "database_path: " << std::string(md.path.u8string()) << "\n";
         metadata_file << "metadata_path: " << std::string(md.path_metadata.u8string()) << "\n";
 
-        metadata_file << "transaction_mode: " << md.transaction_mode ? "true" : "false";
         metadata_file << "\n";
 
     } catch(const std::exception& e) {
@@ -978,7 +981,6 @@ const DatabaseMetadata Database::readMetadata()
         // Initialize variables we are checking for in metadata file
         std::string db_name;
         fs::path db_path, md_path;
-        bool transaction_mode;
 
         // Iterate over every line in metadata file, look for specific attributes, and parse those attributes
         std::string line; int index;
@@ -993,17 +995,14 @@ const DatabaseMetadata Database::readMetadata()
             else if ((index = line.find("metadata_path: ", 0)) != std::string::npos) {
                 md_path = line.substr(index + sizeof("metadata_path") + 1, line.length());
             }
-            else if ((index = line.find("transaction_mode: ", 0)) != std::string::npos) {
-                transaction_mode = line.substr(index + sizeof("transaction_mode") + 1, line.length()) == "0" ? false : true;
-            }
         }
 
-        DatabaseMetadata md(db_name, db_path, md_path, transaction_mode);
+        DatabaseMetadata md(db_name, db_path, md_path);
 
         return md;
     }
 
-    DatabaseMetadata err("undefined", "undefined", "undefined", false);
+    DatabaseMetadata err("undefined", "undefined", "undefined");
 
     return err;
 }
@@ -1013,7 +1012,6 @@ void Database::applyMetadata(const DatabaseMetadata& md )
     this->setDatabaseName(md.database_name);
     this->setPath(md.path);
     this->setPath(md.path_metadata);
-    this->setTransaction(md.transaction_mode);
 }
 
 const DatabaseMetadata Database::getMetadata()
@@ -1021,8 +1019,7 @@ const DatabaseMetadata Database::getMetadata()
     const DatabaseMetadata metadata(
         this->getDatabaseName(),
         this->getPath(),
-        this->getPathMetadata(),
-        this->getTransaction()
+        this->getPathMetadata()
     );
 
     return metadata;

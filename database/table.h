@@ -20,7 +20,7 @@ private:
     unsigned int row_count;                                            // number of rows
     fs::path path;                                                     // The path to the table file
     fs::path path_metadata;
-    bool locked;                                                       // Determines if changes can be made to the table
+    std::string locked;                                                // Determines if changes can be made to the table
 
     // Storage container for each column
     std::vector<std::variant<std::shared_ptr<Column<int>>, std::shared_ptr<Column<float>>, std::shared_ptr<Column<char>>, std::shared_ptr<Column<std::string>>>> columns;
@@ -60,15 +60,15 @@ public:
     // ---------------------------
 
     /** Handels the UPDATE {{ table_name }} SET Command */
-    bool updateColumnSet(const std::string&, const std::string&, const std::string&, const std::string&, const std::string&);
+    bool updateColumnSet(const std::string&, const std::string&, const std::string&, const std::string&, const std::string&, const bool);
 
     /** Handles the DELETE FROM {{ table_anme }} */
     bool deleteFromTable(const std::string&, const std::string&, const std::string&);
 
     /** Handles the INSERT INTO {{ table_name }} VALUES(x, y, z, ...) Command */
-    bool insertRow(const std::vector<std::string>&);
+    bool insertRow(const std::vector<std::string>&, bool);
 
-    /**  Deletes a from the table based on index*/
+    /**  Deletes a row from the table based on index*/
     bool deleteRow(const size_t);
 
     bool writeMetadata();
@@ -105,6 +105,8 @@ public:
 
     bool printRow(const size_t row);
 
+    bool writeCSV();
+
     // Getters
     std::string getTable() { return this->table_name; }
     unsigned int columnCount() { return this->column_count; }
@@ -112,7 +114,10 @@ public:
     const fs::path getPath() { return this->path; }
     const fs::path getPathMetadata() { return this->path_metadata; }
     std::vector<std::pair<std::string, std::string>> getMetaData() { return this->column_meta_data; }
-    bool getLocked() { return this->locked; }
+    std::string getLocked() { return this->locked; }
+    unsigned int getRowCount() { 
+        return (unsigned int)((std::get<0>(this->columns[0]))->getElements().size()); 
+    }
     
     // Setters
     void setTableName(const std::string& name) { this->table_name = name; }
@@ -120,7 +125,10 @@ public:
     void decrementColumnCount() { this->column_count--; }
     void incrementRowCount() { this->row_count++; }
     void decrementRowCount() { this->row_count--; }
-    void setLocked(bool val) { this->locked = val; }
+    void setLocked(std::string val) { this->locked = val; }
+
+    // Set private variables in memory to table metadata
+    void applyMetadata(const TableMetadata& md );
 };
 
 #endif //TABLE_H_

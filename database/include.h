@@ -35,19 +35,16 @@ typedef struct DatabaseMetadata {
     DatabaseMetadata (
         const std::string& _n = "undefined", 
         const fs::path& _p = fs::path(),
-        const fs::path& _p_m = fs::path(),
-        const bool _t_m = false
+        const fs::path& _p_m = fs::path()
     ): 
         database_name(_n), 
         path(_p), 
-        path_metadata(_p_m), 
-        transaction_mode(_t_m)
+        path_metadata(_p_m)
     {}
 
     const std::string database_name;
     const fs::path path;
     const fs::path path_metadata;
-    const bool transaction_mode;
 } DatabaseMetadata;
 
 typedef struct TableMetadata {
@@ -58,7 +55,7 @@ typedef struct TableMetadata {
         const unsigned int _r = 0,
         const fs::path _p = fs::path(),
         const fs::path _pm = fs::path(),
-        const bool _l = false
+        const std::string _l = "false"
     ):
         table_name(_n),
         column_meta_data(c_md),
@@ -75,7 +72,7 @@ typedef struct TableMetadata {
     const unsigned int row_count;                           
     const fs::path path;                                        
     const fs::path path_metadata;
-    const bool locked;
+    const std::string locked;
 
 } TableMetadata;
 
@@ -96,8 +93,13 @@ static std::string _toUpper(std::string str)
 // Joins a vector of strings by a delimeter
 static std::string _join(std::vector<std::string> stringVector, std::string delim = "")
 {
-    return std::accumulate(stringVector.begin(), stringVector.end(), delim);
+    std::ostringstream ss;
+    std::copy(stringVector.begin(), stringVector.end(), std::ostream_iterator<std::string>(ss, delim.c_str()));
+    std::string lol = ss.str();
+    lol.pop_back();
+    return lol;
 }
+
 // Returns a subvector
 template<typename T>
 static auto _subVector(const std::vector<T>& vec, typename std::vector<T>::const_iterator left, typename std::vector<T>::const_iterator right) -> std::vector<T>

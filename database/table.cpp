@@ -9,7 +9,7 @@
 
 // Constructor
 Table::Table(std::string table, std::vector<std::pair<std::string, std::string>> column_meta_data, fs::path path, fs::path path_metadata) : 
-    table_name(table), column_count(0), row_count(0), column_meta_data(column_meta_data), path(path), locked(false), path_metadata(path_metadata)
+    table_name(table), column_count(0), row_count(0), column_meta_data(column_meta_data), path(path), locked("false"), path_metadata(path_metadata)
     {
         for (auto& col: column_meta_data)
         {
@@ -129,7 +129,7 @@ bool Table::createVarCharColumn(std::string column, size_t max)
     return true;
 }
 
-bool Table::insertRow(const std::vector<std::string>& row)
+bool Table::insertRow(const std::vector<std::string>& row, bool write)
 {
     size_t col_index = 0;
 
@@ -149,7 +149,7 @@ bool Table::insertRow(const std::vector<std::string>& row)
         required by the column. **/
     for (auto& var : row)
     {
-        table_file << var << ',';
+        if (write) table_file << var << ',';
         if (auto col = std::get_if<std::shared_ptr<Column<int>>>(&(this->columns[col_index])))              // INT Type   
         {
             // Get a pointer to the column
@@ -221,13 +221,13 @@ bool Table::insertRow(const std::vector<std::string>& row)
         ++col_index;
     }
     // Insert new line
-    table_file << '\n';
+    if (write) table_file << '\n';
 
     // Close the file
-    table_file.close();
+    if (table_file.is_open()) table_file.close();
 
     // Increment row count
-    this->row_count++;
+    this->row_count = ((std::get<0>(this->columns[0]))->getElements()).size();
 
     // Update metadata
     this->writeMetadata();
@@ -310,7 +310,8 @@ bool Table::updateColumnSet(
     const std::string& column_to_search,
     const std::string& value_to_update,
     const std::string& value_to_search,
-    const std::string& op
+    const std::string& op,
+    const bool mode
 )
 {
     long int update_colum_index = columnIndexFromName(column_to_update);
@@ -360,6 +361,11 @@ bool Table::updateColumnSet(
     {
         std::cerr << e.what() << "\n";
         return false;
+    }
+
+    if (mode == false) {
+        std::cout << "-- " << elements_to_update.size() << " records modified.\n";
+        return true;
     }
 
     try 
@@ -787,9 +793,7 @@ bool Table::printRow(const size_t row) {
             }
 
             if (counter != (this->columnCount() - 1)) std::cout << " | ";
-            
         }
-    
     }
     catch(const std::exception& e)
     {
@@ -819,7 +823,7 @@ bool Table::writeMetadata()
         metadata_file << "table_path: " << std::string(this->path.u8string()) << "\n";
         metadata_file << "metadata_path: " << std::string(this->path_metadata.u8string()) << "\n";
 
-        metadata_file << "locked: " << this->getLocked() ? "true" : "false";
+        metadata_file << "locked: " << this->getLocked();
         
         metadata_file << "\n";
     }
@@ -835,5 +839,68 @@ bool Table::writeMetadata()
         metadata_file.close();
     }
 
+    return true;
+}
+
+void Table::applyMetadata(const TableMetadata& md )
+{
+    this->setTableName(md.table_name);
+    this->setLocked(md.locked);
+}
+
+bool Table::writeCSV()
+{
+    std::ofstream file(this->getPath(), std::ofstream::out | std::ofstream::trunc);
+
+    auto headers = this->getMetaData();
+    for (auto& col : headers) {
+        file << col.first << " " << col.second << ",";
+    }
+    file << "\n";
+
+    size_t rows = this->getRowCount();
+
+    try {
+        for (size_t row = 0; row < rows; row++)
+        {
+            // Iterate over every column
+            for (size_t i = 0; i < this->column_count; ++i) {
+                if (auto col = std::get_if<std::shared_ptr<Column<int>>>(&(this->columns[i]))) {
+                    // Get a pointer to the column
+                    std::shared_ptr<Column<int>> column = *col;
+                    
+                    // Print the value
+                    file << column->getElements()[row] << ",";
+                }
+                else if (auto col = std::get_if<std::shared_ptr<Column<float>>>(&(this->columns[i]))) {
+                    // Get a pointer to the column
+                    std::shared_ptr<Column<float>> column = *col;
+                    
+                    // Print the value
+                    file << column->getElements()[row] << ",";
+                }
+                else if (auto col = std::get_if<std::shared_ptr<Column<char>>>(&(this->columns[i]))) {
+                    // Get a pointer to the column
+                    std::shared_ptr<Column<char>> column = *col;
+                    
+                    // Print the value
+                    file << column->getElements()[row] << ",";
+                }
+                else if (auto col = std::get_if<std::shared_ptr<Column<std::string>>>(&(this->columns[i]))) {
+                    // Get a pointer to the column
+                    std::shared_ptr<Column<std::string>> column = *col;
+                    
+                    // Print the value
+                    file << column->getElements()[row] << ",";
+                }
+            }
+            file << "\n";
+        }
+    }
+    catch(const std::exception& e)
+    {
+        std::cerr << e.what() << "\n";
+        return false;
+    }
     return true;
 }
